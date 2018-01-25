@@ -83,6 +83,10 @@ def route_to_train(route_short_name, stop_name, direction):
     update_model_database(conn, all_columns_str, pickle_path, route_dir)
     predictions = fit_model.predict(X_test)
     error = mean_squared_error(predictions, y_test)
+
+    cur.close()
+    conn.close()
+
     return fit_model, predictions, y_test, error**(1/2), all_columns_str
 
 def column_list_to_string(list):
@@ -126,7 +130,8 @@ def update_model_database(conn, all_columns, pickle_path, route_dir):
 
     cur.execute("UPDATE models "
                 "SET pickle_path = (%s),"
-                    "model_columns = (%s)"
+                    "model_columns = (%s),"
+                    "trained = 'true' "
                     "WHERE route_dir  = (%s)",
                     (pickle_path, all_columns, route_dir))
     conn.commit()

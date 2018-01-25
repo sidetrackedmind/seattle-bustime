@@ -45,7 +45,7 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
             from stop_info
             where route_short_name = '{}'
             and stop_name = '{}' '''.format(select_string, route_short_name, stop_name)
-    
+
     cur.execute(query)
     query_list = cur.fetchall()
     route_dir_stop = query_list[0][0]
@@ -84,6 +84,9 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
     X_array = user_input_fixed.values
 
     prediction = model_predict.model_predict(X_array, pickle_path)
+
+    cur.close()
+    conn.close()
 
     return prediction
 
