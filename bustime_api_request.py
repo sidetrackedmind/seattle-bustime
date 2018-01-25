@@ -3,8 +3,9 @@ import boto3
 import datetime
 import time
 import logging
+import os
 
-api_key = '02c542c2-023d-47c4-891c-bd22c8c2a552'
+api_key = os.environ["ONEBUSAWAY_KEY"]
 
 agency = '1'  # this is the agency ID for King County Metro
 base_url = 'http://pugetsound.onebusaway.org/api/'
@@ -33,12 +34,13 @@ def single_request(url, api_key):
         logging.error('status code {}'.format(r.status_code))
 
 def request_realtime(base_url, endpoints, agency, api_key):
+    bucket_name = os.environ["BUS_BUCKET_NAME"]
     for endpoint_name, endpoint in endpoints.items():
         url = base_url + endpoint.format(agency=agency)
         result = single_request(url, api_key)
         filename = build_filename(endpoint_name)
         s3 = boto3.client('s3')
-        s3.put_object(Bucket='malnor.seattle.bustime', Body=result, Key=filename)
+        s3.put_object(Bucket=bucket_name, Body=result, Key=filename)
         #with open(filename, 'wb') as outfile:
         #    outfile.write(result)
         time.sleep(5)

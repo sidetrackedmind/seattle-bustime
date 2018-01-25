@@ -21,26 +21,30 @@ def s3_updates_to_rds(year, month, day_list):
     ------
     pushing update files for all days in the list to RDS database'''
 
+    bucket_name = os.environ["BUS_BUCKET_NAME"]
+
     temp_storage_path = './temp_data_storage'
 
-    aws_base_command = 'aws s3 sync s3://malnor.seattle.bustime/{}/{}/'.format(
-                                                                year, month
+    aws_base_command = 'aws s3 sync s3://{}/{}/{}/'.format(bucket_name,
+                                                                year,
+                                                                month
                                                                 )
 
     #engine params
-    user = 'bus_user'
-    db_pass = 'bustime0128'
-    host = 'sea-bustime-instance.czxfkc3pqpyj.us-west-2.rds.amazonaws.com'
-    port = '5432'
-    db_name = 'bustime_db'
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    db_key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
 
     #set up the engine
     engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
                                     user,
-                                    db_pass,
+                                    db_key,
                                     host,
                                     port,
                                     db_name))
+    #improvement for later -- put this in s3 so you don't have to load
     #grab the gtfs table for joining later
     full_gtfs = pd.read_csv('March2017_gtfs/full_gtfs.csv', index_col=0)
 
