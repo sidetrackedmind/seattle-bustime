@@ -16,7 +16,11 @@ def route_to_train(route_short_name, stop_name, direction):
 
     OUTPUT
     -------
-    trained model
+    fit_model,
+    predictions,
+    y_test,
+    error**(1/2),
+    all_columns_str
     '''
 
     db_name = os.environ["RDS_NAME"]

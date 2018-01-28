@@ -23,7 +23,10 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
 
     OUTPUT
     -------
-    X numpy array with the same dummy columns as the model
+    prediction -- bus arrival prediction in minutes
+    -- positive is delay
+    -- negative is early
+    -- zero is "on schedule"
     '''
 
     db_name = os.environ["RDS_NAME"]
@@ -53,7 +56,7 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
     route_id = query_list[0][2]
     route_dir = str(route_id) + '_' + str(direction)
 
-    date = datetime.strptime(date_string, '%Y-%M-%d')
+    date = datetime.strptime(date_string, '%Y-%m-%d')
     hour = user_hour
     day = date.day
     month = date.month
