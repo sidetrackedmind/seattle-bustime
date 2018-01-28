@@ -1,0 +1,34 @@
+<html>
+<head>
+<link
+    href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css"
+    rel="stylesheet" type="text/css">
+<link
+    href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.5.min.css"
+    rel="stylesheet" type="text/css">
+
+<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.js"></script>
+<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.5.min.js"></script>
+
+</head>
+<body>
+<H1>Iris Histogram</H1>
+
+<form action="/">
+<select name="route_name">
+	{% for route in route_names %}
+		{% if route == current_route_name %}
+			<option selected value="{{ route }}">{{ route }}</option>
+		{% else %}
+			<option value="{{ route }}">{{ route }}</option>
+		{% endif %}
+	{% endfor %}
+</select>
+<input type="submit">
+</form>
+<H1>{{ current_route_name }}</H1>
+{{ script|safe }}
+{{ div|safe }}
+
+</body>
+</html>
