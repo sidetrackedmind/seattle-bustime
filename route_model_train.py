@@ -145,7 +145,7 @@ def route_to_train_final(short_dir):
             and direction_id = {}
             '''.format(select_string, route_id, direction)
 
-    print('getting historical route information for {}'.format(route_short_name))
+    print('getting historical route information for {}'.format(short_dir))
     cur.execute(query)
     query_list = cur.fetchall()
     result = pd.DataFrame(query_list, columns=model_col_list)
