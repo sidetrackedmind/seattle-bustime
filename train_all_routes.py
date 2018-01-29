@@ -54,6 +54,12 @@ def train_all_routes():
 
     for short_dir in short_dir_list:
         if short_dir not in trained_list:
+            conn = psycopg2.connect(dbname=db_name,
+                                    user=user,
+                                    password=key,
+                                    host=host,
+                                    port=port)
+            cur = conn.cursor()
             query = '''
                     select distinct(route_id), direction_id
                     from route_dir
