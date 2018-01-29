@@ -43,9 +43,7 @@ def train_all_routes():
     for item in short_dir_query:
         short_dir_list.append(item[0])
 
-    cur.execute("SELECT route_dir "
-        "FROM models"
-        "WHERE trained"
+    cur.execute('''SELECT route_dir FROM models WHERE trained'''
             )
     trained_query = cur.fetchall()
 
