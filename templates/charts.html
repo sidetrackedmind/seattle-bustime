@@ -31,6 +31,29 @@
     document;
     }
 </script>
+<script>
+    predict = function(){
+	  user_route = $("#selected_route").val()
+	  user_stop = $("#stop_name").val()
+      user_hour = $("#selected_hour").val()
+
+	  user_info = {user_route : user_route, user_stop : user_stop, user_hour : user_hour}
+
+	  $.post({
+	    url: "/predict",
+		contentType: "application/json",
+		data: JSON.stringify(user_info),
+		success: function(result){
+		  $(".hidden").css("display","inline").html("The prediction is " + result.prediction);
+		}
+	  });
+	}
+  </script>
+  <style>
+    .hidden {
+	  display: none;
+	}
+  </style>
 </head>
 
 <body class="fixed-nav sticky-footer bg-dark" id="page-top">
@@ -146,30 +169,35 @@
 
           <i class="fa fa-area-chart"></i> User Inputs</div>
         <div class="user_inputs">
-            <form action="/">
+
             <tr>
+                <form action="/route">
                 <td>Route</td>
                 <td>
                   <select name="route_name" onchange=submit()>
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
-                  			<option selected value="{{ current_route_name }}">{{ current_route_name }}</option>
+                  			<option selected value="{{ current_route_name }}" id="selected_route">{{ current_route_name }}</option>
                   		{% else %}
                   			<option value="{{ route }}">{{ route }}</option>
                   		{% endif %}
                   	{% endfor %}
                   </select>
                 </td>
+                </form>
+                <form action="/stop">
                 <td>Stop</td>
-                <select name="stop_name">
+                <select name="stop_name" onchange="submit()">
                     {% for stop in stop_names %}
-                      {% if stop == current_route_name %}
-                          <option selected value="{{ stop }}">{{ stop }}</option>
+                      {% if stop == current_stop %}
+                          <option selected value="{{ stop }}" id="selected_stop">{{ stop }}</option>
                       {% else %}
                           <option value="{{ stop }}">{{ stop }}</option>
                       {% endif %}
                     {% endfor %}
                 </select>
+                </form>
+                <form action="/hour">
                 <td>Hour</td>
                 <select name="hour" onchange=submit()>
                     {% for hour in hours %}
@@ -180,16 +208,16 @@
                       {% endif %}
                     {% endfor %}
                 </select>
+                </form>
             </tr>
-            </form>
+        </form>
           <canvas id="UserInputArea" width="100%" height="30"></canvas>
         </div>
       </div>
       <!-- Prediction Space-->
       <hr>
       <div class="col-sm-4 text-center my-auto">
-        <div class="h4 mb-0 text-primary">
-            Prediction: {{prediction}} !</div>
+        <h3 name="prediction">Prediction is {{ prediction }}</h3>
       </div>
       <hr>
       <!-- Map Area-->

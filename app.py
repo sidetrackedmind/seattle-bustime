@@ -52,7 +52,6 @@ route_list = list(route_short_df['short_dir'].unique())
 hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
-tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
 def select_route_name(route_short_df, route_name):
     route_mask = (route_short_df['short_dir'] == route_name)
@@ -66,62 +65,86 @@ conn.close()
 @app.route('/')
 def index():
 
+    prediction = "select a route :)"
+
+    return render_template('charts.html',
+                                route_names=route_list,
+                                prediction=prediction)
+
+@app.route('/route')
+def route():
+
 #    current_date = request.args.get("datepicker")
-    prediction = 'no prediction yet'
 
     current_route_name = request.args.get("route_name")
 
-    current_hour = request.args.get("hour")
-
     stop_names = select_route_name(route_short_df,
                                     current_route_name)
-    stop = request.args.get("stop_name")
 
-    if current_hour == None or stop == None:
-
-        return render_template('charts.html',
+    return render_template('charts.html',
                                 current_route_name=current_route_name,
                                 route_names=route_list,
                                 stop_names=stop_names,
-                                prediction=prediction,
                                 hours=hours)
 
-    else:
-        route_short_name = current_route_name.split('-')[0]
-        direction = current_route_name.split('-')[1]
-        user_hour = request.args.get("hour")
-        prediction = dashboard_pipe(route_short_name, stop, direction, tomorrows_date, user_hour)
-        return render_template('charts.html',
-                            current_route_name=current_route_name,
-                            route_names=route_list,
-                            stop_names=stop_names,
-                            prediction=prediction,
-                            hours=hours)
-    '''
-@app.route('/predict')
-def predict():
+@app.route('/stop')
+def stop():
 
-#    current_date = request.args.get("datepicker")
-    prediction = 'no prediction yet'
 
     current_route_name = request.args.get("route_name")
 
+    stop_names = select_route_name(route_short_df,
+                                    current_route_name)
+
+    current_stop = request.args.get("stop_name")
+
+    return render_template('charts.html',
+                                current_route_name=current_route_name,
+                                route_names=route_list,
+                                stop_name=current_stop,
+                                stop_names=stop_names,
+                                prediction=current_stop,
+                                hours=hours)
+
+
+@app.route('/hour')
+def hour():
+
     current_hour = request.args.get("hour")
+
+    current_route_name = request.args.get("route_name")
+
+    current_stop = request.args.get("stop_name")
 
     stop_names = select_route_name(route_short_df,
                                     current_route_name)
-    stop = request.args.get("stop_name")
-    route_short_name = current_route_name.split('-')[0]
-    direction = current_route_name.split('-')[1]
-    stop_name = request.args.get("stop_name")
-    user_hour = request.args.get("hour")
-    prediction = dashboard_pipe(route_short_name, stop_name, direction,
-                            tomorrows_date, user_hour)
+
+
+
+
     return render_template('charts.html',
-                        current_route_name=current_route_name,
-                        route_names=route_list,
-                        stop_names=stop_names,
-                        prediction=prediction,
-                        hours=hours)'''
+                                current_route_name=current_route_name,
+                                route_names=route_list,
+                                current_stop=current_stop,
+                                stop_names=stop_names,
+                                hour=current_hour,
+                                prediction=current_stop,
+                                hours=hours)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+
+    user_data = request.json
+
+    route, stop, hour = user_data['user_route'], user_data['user_stop'], int(user_data['user_hour'])
+
+    route_short_name = route.split('-')[0]
+    direction = route.split('-')[1]
+    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
+    prediction = dashboard_pipe(route_short_name, stop, direction,
+                            tomorrows_date, hour)
+
+    return jsonify({'prediction': prediction})
 if __name__ == '__main__':
     app.run(host='0.0.0.0', threaded=True)
