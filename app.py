@@ -87,49 +87,6 @@ def route():
                                 stop_names=stop_names,
                                 hours=hours)
 
-@app.route('/stop')
-def stop():
-
-
-    current_route_name = request.args.get("route_name")
-
-    stop_names = select_route_name(route_short_df,
-                                    current_route_name)
-
-    current_stop = request.args.get("stop_name")
-
-    return render_template('charts.html',
-                                current_route_name=current_route_name,
-                                route_names=route_list,
-                                stop_name=current_stop,
-                                stop_names=stop_names,
-                                prediction=current_stop,
-                                hours=hours)
-
-
-@app.route('/hour')
-def hour():
-
-    current_hour = request.args.get("hour")
-
-    current_route_name = request.args.get("route_name")
-
-    current_stop = request.args.get("stop_name")
-
-    stop_names = select_route_name(route_short_df,
-                                    current_route_name)
-
-
-
-
-    return render_template('charts.html',
-                                current_route_name=current_route_name,
-                                route_names=route_list,
-                                current_stop=current_stop,
-                                stop_names=stop_names,
-                                hour=current_hour,
-                                prediction=current_stop,
-                                hours=hours)
 
 @app.route('/predict', methods=['POST'])
 def predict():

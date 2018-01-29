@@ -44,7 +44,7 @@
 		contentType: "application/json",
 		data: JSON.stringify(user_info),
 		success: function(result){
-		  $(".hidden").css("display","inline").html("The prediction is " + result.prediction);
+		  $(".prediction").html("The prediction is " + result.prediction);
 		}
 	  });
 	}
@@ -184,10 +184,8 @@
                   	{% endfor %}
                   </select>
                 </td>
-                </form>
-                <form action="/stop">
                 <td>Stop</td>
-                <select name="stop_name" onchange="submit()">
+                <select name="stop_name">
                     {% for stop in stop_names %}
                       {% if stop == current_stop %}
                           <option selected value="{{ stop }}" id="selected_stop">{{ stop }}</option>
@@ -196,13 +194,11 @@
                       {% endif %}
                     {% endfor %}
                 </select>
-                </form>
-                <form action="/hour">
                 <td>Hour</td>
-                <select name="hour" onchange=submit()>
+                <select name="hour" onchange="predict()">
                     {% for hour in hours %}
                       {% if hour == current_hour %}
-                          <option selected value="{{ hour }}">{{ hour }}</option>
+                          <option selected value="{{ hour }}" id="selected_hour">{{ hour }}</option>
                       {% else %}
                           <option value="{{ hour }}">{{ hour }}</option>
                       {% endif %}
@@ -210,7 +206,6 @@
                 </select>
                 </form>
             </tr>
-        </form>
           <canvas id="UserInputArea" width="100%" height="30"></canvas>
         </div>
       </div>

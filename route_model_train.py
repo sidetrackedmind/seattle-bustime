@@ -8,7 +8,7 @@ from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
 
-def route_to_train(route_short_name, stop_name, direction):
+def route_to_train_test(route_short_name, stop_name, direction):
     '''This is a function to process user input into the model format
     INPUT
     -------
@@ -92,6 +92,84 @@ def route_to_train(route_short_name, stop_name, direction):
     conn.close()
 
     return fit_model, predictions, y_test, error**(1/2), all_columns_str
+
+def route_to_train_final(short_dir):
+    '''This is a function to process user input into the model format
+    INPUT
+    -------
+
+
+    OUTPUT
+    -------
+    None
+    updated pickle model in S3
+    updated train column in RDS "models" table
+    '''
+
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+
+    conn = psycopg2.connect(dbname=db_name,
+                            user=user,
+                            password=key,
+                            host=host,
+                            port=port)
+    cur = conn.cursor()
+
+    query = '''
+            select distinct(route_id), direction_id
+            from route_dir
+            where short_dir = '{}'
+            '''.format(short_dir)
+
+    print('finding {}'.format(short_dir))
+
+    cur.execute(query)
+    query_list = cur.fetchall()
+    route_id = query_list[0][0]
+    direction = query_list[0][1]
+    route_dir = str(route_id) + '_' + str(direction)
+    pickle_path = build_filename(route_id, direction)
+
+    model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
+
+    select_string = column_list_to_string(model_col_list)
+
+    query = '''
+            select {}
+            from updates
+            where route_id = {}
+            and direction_id = {}
+            '''.format(select_string, route_id, direction)
+
+    print('getting historical route information for {}'.format(route_short_name))
+    cur.execute(query)
+    query_list = cur.fetchall()
+    result = pd.DataFrame(query_list, columns=model_col_list)
+    y = (result.iloc[:,-1].values)/60
+    result = result.drop('delay', axis=1)
+    dummy_col = ['route_dir_stop','month', 'day', 'hour','dow']
+    result_dummies = pd.get_dummies(result,columns=dummy_col)
+    all_column_list = list(result_dummies.columns)
+    all_columns_str = column_list_to_string(all_column_list)
+    X = result_dummies.values
+
+    gbr = GradientBoostingRegressor(n_estimators=1500,
+                                    learning_rate=0.05)
+    print('starting model fit for {}_{}'.format(route_id, direction))
+    fit_model = gbr.fit(X, y)
+    print('model fit complete for {}_{}'.format(route_id, direction))
+    put_pickle_model(fit_model, pickle_path)
+
+    update_model_database(conn, all_columns_str, pickle_path, route_dir)
+    print('database updated for {}_{}'.format(route_id, direction))
+
+
+    cur.close()
+    conn.close()
 
 def column_list_to_string(list):
     column_str = ''
