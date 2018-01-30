@@ -93,6 +93,73 @@ def route_to_train_test(route_short_name, stop_name, direction):
 
     return fit_model, predictions, y_test, error**(1/2), all_columns_str
 
+def get_stop_metrics(route_short_name, stop_name, direction):
+    '''This is a function to process user input
+    grab a pickled model and output stop metrics
+    INPUT
+    -------
+    route_short_name = route name e.g. "7" or "76"
+    stop_name = stop name e.g. "1st Ave & Broad St"
+    direction = which direction the bus is going on the route (0,1)
+
+    OUTPUT
+    -------
+    route_df
+    '''
+
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+
+    conn = psycopg2.connect(dbname=db_name,
+                            user=user,
+                            password=key,
+                            host=host,
+                            port=port)
+    cur = conn.cursor()
+
+    query = '''
+            select route_id
+            from route_select
+            where route_short_name = '{}'
+            and stop_name = '{}'
+            and direction_id = {} '''.format(route_short_name,
+                                        stop_name,
+                                        direction)
+
+    print('finding route_id and direction_id')
+
+    cur.execute(query)
+    query_list = cur.fetchall()
+    route_id = query_list[0][0]
+    route_dir = str(route_id) + '_' + str(direction)
+    pickle_path = build_filename(route_id, direction)
+
+    model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
+
+    select_string = column_list_to_string(model_col_list)
+
+    query = '''
+            select {}
+            from updates
+            where route_id = {}
+            and direction_id = {}
+            '''.format(select_string, route_id, direction)
+
+    print('getting historical route information')
+    cur.execute(query)
+    query_list = cur.fetchall()
+    result_df = pd.DataFrame(query_list, columns=model_col_list)
+    '''y_array = (result.iloc[:,-1].values)/60
+    result = result.drop('delay', axis=1)
+    X_array = result.values'''
+
+    cur.close()
+    conn.close()
+
+    return result_df
 
 def column_list_to_string(list):
     column_str = ''

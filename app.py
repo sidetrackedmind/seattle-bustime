@@ -27,15 +27,15 @@ cur = conn.cursor()
 
 
 cur.execute("SELECT * "
-            "FROM route_dir"
+            "FROM route_info"
                 )
 route_short_list = cur.fetchall()
 
 
 route_short_df = pd.DataFrame(route_short_list,
-                        columns=['short_dir','route_short_dir',
-                        'route_short_name', 'direction_id',
-                        'stop_name', 'route_id'])
+                        columns=['route_dir','route_short_name',
+                        'stop_name','direction_id','route_id',
+                        'short_dir','route_short_dir'])
 
 route_list = list(route_short_df['short_dir'].unique())
 
