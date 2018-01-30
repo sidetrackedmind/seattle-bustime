@@ -33,15 +33,15 @@ def train_all_routes():
                             port=port)
     cur = conn.cursor()
 
-    cur.execute("SELECT DISTINCT(short_dir), route_id, direction_id "
-        "FROM route_dir"
+    cur.execute("SELECT DISTINCT(route_dir), route_id, direction_id "
+        "FROM route_info"
             )
-    short_dir_query = cur.fetchall()
+    route_dir_query = cur.fetchall()
 
-    short_dir_list = []
+    route_dir_list = []
 
     for item in short_dir_query:
-        short_dir_list.append(item[0])
+        route_dir_list.append(item[0])
 
     cur.execute('''SELECT route_dir FROM models WHERE trained'''
             )
@@ -52,8 +52,8 @@ def train_all_routes():
     for item in trained_query:
         trained_list.append(item[0])
 
-    for short_dir in short_dir_list:
-        if short_dir not in trained_list:
+    for route_dir in route_dir_list:
+        if route_dir not in trained_list:
             conn = psycopg2.connect(dbname=db_name,
                                     user=user,
                                     password=key,
@@ -62,11 +62,11 @@ def train_all_routes():
             cur = conn.cursor()
             query = '''
                     select distinct(route_id), direction_id
-                    from route_dir
-                    where short_dir = '{}'
-                    '''.format(short_dir)
+                    from route_info
+                    where route_dir = '{}'
+                    '''.format(route_dir)
 
-            print('finding {}'.format(short_dir))
+            print('finding {}'.format(route_dir))
 
             cur.execute(query)
             query_list = cur.fetchall()
