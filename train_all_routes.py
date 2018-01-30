@@ -40,7 +40,7 @@ def train_all_routes():
 
     route_dir_list = []
 
-    for item in short_dir_query:
+    for item in route_dir_query:
         route_dir_list.append(item[0])
 
     cur.execute('''SELECT route_dir FROM models WHERE trained'''
