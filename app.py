@@ -64,19 +64,19 @@ conn.close()
 
 @app.route('/')
 def index():
-
-    prediction = "select a route :)"
-
+    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     return render_template('charts.html',
-                                route_names=route_list,
-                                prediction=prediction)
+                                tomorrows_date=tomorrows_date,
+                                route_names=route_list)
 
 @app.route('/route')
 def route():
 
 #    current_date = request.args.get("datepicker")
 
-    current_route_name = request.args.get("route_name")
+    current_route_name = request.args.get("routeSelect")
+
+    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
     stop_names = select_route_name(route_short_df,
                                     current_route_name)
@@ -84,6 +84,7 @@ def route():
     return render_template('charts.html',
                                 current_route_name=current_route_name,
                                 route_names=route_list,
+                                tomorrows_date=tomorrows_date,
                                 stop_names=stop_names,
                                 hours=hours)
 
@@ -93,14 +94,19 @@ def predict():
 
     user_data = request.json
 
-    route, stop, hour = user_data['user_route'], user_data['user_stop'], int(user_data['user_hour'])
+    print(user_data)
+
+    route, stop, hour, date = (user_data['user_route'],
+                                user_data['user_stop'],
+                                int(user_data['user_hour']),
+                                user_data['user_date'])
 
     route_short_name = route.split('-')[0]
     direction = route.split('-')[1]
-    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    #tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
     prediction = dashboard_pipe(route_short_name, stop, direction,
-                            tomorrows_date, hour)
+                            date, hour)
 
     return jsonify({'prediction': prediction})
 if __name__ == '__main__':

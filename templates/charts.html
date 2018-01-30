@@ -25,26 +25,22 @@
   crossorigin=""></script>
 
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-  <script>
-  function routeChange() {
-    var x = document.getElementById("route_name").value;
-    document;
-    }
-</script>
+
 <script>
     predict = function(){
-	  user_route = $("#selected_route").val()
-	  user_stop = $("#stop_name").val()
-      user_hour = $("#selected_hour").val()
+	  user_route = $("#routeSelect").val()
+	  user_stop = $("#stopSelect").val()
+      user_hour = $("#hourSelect").val()
+      user_date = $("#dateSelect").val()
 
-	  user_info = {user_route : user_route, user_stop : user_stop, user_hour : user_hour}
+	  user_info = {user_route : user_route, user_stop : user_stop, user_hour : user_hour, user_date : user_date}
 
 	  $.post({
 	    url: "/predict",
 		contentType: "application/json",
 		data: JSON.stringify(user_info),
 		success: function(result){
-		  $(".prediction").html("The prediction is " + result.prediction);
+		  $("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
 		}
 	  });
 	}
@@ -174,28 +170,30 @@
                 <form action="/route">
                 <td>Route</td>
                 <td>
-                  <select name="route_name" onchange=submit()>
+                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange=submit()>
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
-                  			<option selected value="{{ current_route_name }}" id="selected_route">{{ current_route_name }}</option>
+                  			<option name="route" value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
                   		{% else %}
-                  			<option value="{{ route }}">{{ route }}</option>
+                  			<option name="route" value="{{ route }}">{{ route }}</option>
                   		{% endif %}
                   	{% endfor %}
                   </select>
                 </td>
                 <td>Stop</td>
-                <select name="stop_name">
+                <select name="stopSelect" id="stopSelect" class="selectStop" onchange="stop_change()">
                     {% for stop in stop_names %}
                       {% if stop == current_stop %}
-                          <option selected value="{{ stop }}" id="selected_stop">{{ stop }}</option>
+                          <option name="stop" value="{{ stop }}" selected="selected">{{ stop }}</option>
                       {% else %}
-                          <option value="{{ stop }}">{{ stop }}</option>
+                          <option name="stop" value="{{ stop }}">{{ stop }}</option>
                       {% endif %}
                     {% endfor %}
                 </select>
+                <td>Date</td>
+                <input id="dateSelect" name="dateSelect" type="date" value="{{ tomorrows_date }}"/>
                 <td>Hour</td>
-                <select name="hour" onchange="predict()">
+                <select name="hourSelect" id="hourSelect" class="selectStop" onchange="hour_change()">
                     {% for hour in hours %}
                       {% if hour == current_hour %}
                           <option selected value="{{ hour }}" id="selected_hour">{{ hour }}</option>
@@ -205,6 +203,7 @@
                     {% endfor %}
                 </select>
                 </form>
+                <button onclick="predict()">Submit</button>
             </tr>
           <canvas id="UserInputArea" width="100%" height="30"></canvas>
         </div>
@@ -212,7 +211,7 @@
       <!-- Prediction Space-->
       <hr>
       <div class="col-sm-4 text-center my-auto">
-        <h3 name="prediction">Prediction is {{ prediction }}</h3>
+        <h3 id="prediction"></h3>
       </div>
       <hr>
       <!-- Map Area-->

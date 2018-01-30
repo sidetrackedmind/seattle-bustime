@@ -33,7 +33,7 @@ def train_all_routes():
                             port=port)
     cur = conn.cursor()
 
-    cur.execute("SELECT DISTINCT(short_dir) "
+    cur.execute("SELECT DISTINCT(short_dir), route_id, direction_id "
         "FROM route_dir"
             )
     short_dir_query = cur.fetchall()
