@@ -4,7 +4,7 @@ import numpy as np
 import psycopg2
 from sqlalchemy import create_engine
 from route_model_train import get_route_metrics
-from s3_to_rds import write_to_table
+
 
 def route_metrics():
 
@@ -176,6 +176,21 @@ def build_hour_stop_stats_row(route_id, stop_id, stop, week_df,
             hours_week_df[col_90_name] = np.nan
 
     return hours_week_df
+
+def write_to_table(df, db_engine, table_name, if_exists='fail'):
+    string_data_io = io.StringIO()
+    df.to_csv(string_data_io, sep='|', index=False)
+    pd_sql_engine = pd.io.sql.pandasSQL_builder(db_engine)
+    table = pd.io.sql.SQLTable(table_name, pd_sql_engine, frame=df,
+                               index=False, if_exists=if_exists)
+    table.create()
+    string_data_io.seek(0)
+    string_data_io.readline()  # remove header
+    with db_engine.connect() as connection:
+        with connection.connection.cursor() as cursor:
+            copy_cmd = "COPY %s FROM STDIN HEADER DELIMITER '|' CSV" % table_name
+            cursor.copy_expert(copy_cmd, string_data_io)
+        connection.connection.commit()
 
 def percentile(n):
     def percentile_(x):
