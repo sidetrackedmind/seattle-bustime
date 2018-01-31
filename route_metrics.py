@@ -158,7 +158,7 @@ def build_hour_stop_stats_row(route_id, stop_id, stop, week_df,
     user_stop = week_df['stop_name'] == stop
     hours_range = np.arange(0,24,1)
     hours_week_df = pd.DataFrame({'route_id':route_id, 'stop_id':stop_id,
-                                'stop':stop, 'is_week':is_week,
+                                'stop_name':stop, 'is_week':is_week,
                                 'direction_id':direction_id,
                                 'route_dir':route_dir}, index=[0])
     for hour in hours_range:
