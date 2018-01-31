@@ -224,9 +224,9 @@ def write_to_table(df, db_engine, table_name, if_exists='fail'):
 def update_status_database(conn, route_dir):
     cur = conn.cursor()
 
-    cur.execute("UPDATE route_metric_status "
-                "SET updated = 'true' "
-                "WHERE route_dir  = '(%s)'",(route_dir))
+    cur.execute('''UPDATE route_metric_status
+                SET updated = 'true'
+                WHERE route_dir  = '{}' ''',(route_dir))
     conn.commit()
 
 def percentile(n):
