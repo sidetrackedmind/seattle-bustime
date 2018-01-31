@@ -2,8 +2,54 @@ import os
 import pandas as pd
 import numpy as np
 import psycopg2
+from sqlalchemy import create_engine
 from route_model_train import get_route_metrics
+from s3_to_rds import write_to_table
 
+def route_metrics():
+
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+
+    conn = psycopg2.connect(dbname=db_name,
+                            user=user,
+                            password=key,
+                            host=host,
+                            port=port)
+    cur = conn.cursor()
+
+
+    cur.execute("SELECT DISTINCT route_dir"
+                "FROM route_info"
+                )
+    route_dir_list = cur.fetchall()
+
+    #set up the engine
+    engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
+                                    user,
+                                    db_key,
+                                    host,
+                                    port,
+                                    db_name))
+
+    for i, item in enumerate(route_dir_list):
+        route_dir = item[0]
+        print("starting process for {} #{} of {}".format(route_dir,
+                                                i, len(route_dir_list)))
+        route_df = update_route_metrics(route_dir)
+        if i == 0:
+            write_to_table(route_df, engine, table_name='route_metrics',
+                                                if_exists='replace')
+        else:
+            write_to_table(route_df, engine, table_name='route_metrics',
+                                                if_exists='append')
+
+
+    cur.close()
+    conn.close()
 
 def update_route_metrics(route_dir):
     '''
@@ -72,8 +118,7 @@ def update_route_metrics(route_dir):
                     'hour21_90', 'hour22_10','hour22_90','hour23_10',
                     'hour23_90']
 
-    print('starting weekday loop')
-    print(route_dir)
+
     for weekday_stop in weekday_stop_list:
         is_week = True
         print(route_id, stop_id, weekday_stop, is_week)
@@ -85,8 +130,7 @@ def update_route_metrics(route_dir):
                                                 route_dir, is_week)
         full_hour_df = full_hour_df[hour_column_list]
 
-    print('*********************************************************** \
-            starting weekend loop')
+
     for weekend_stop in weekend_stop_list:
         is_week = False
         update_hour_df = build_hour_stop_stats_row(route_id,
@@ -138,3 +182,6 @@ def percentile(n):
         return np.percentile(x, n)/60
     percentile_.__name__ = 'percentile_%s' % n
     return percentile_
+
+if __name__ == "__main__":
+    route_metrics()
