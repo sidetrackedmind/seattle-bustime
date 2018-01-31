@@ -28,16 +28,22 @@ def route_metrics():
                 )
     route_dir_list = cur.fetchall()
 
-    #set up the engine
-    engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
-                                    user,
-                                    key,
-                                    host,
-                                    port,
-                                    db_name))
+    cur.close()
+    conn.close()
+
+
 
     for i, item in enumerate(route_dir_list):
         route_dir = item[0]
+
+        #set up the engine
+        engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
+                                        user,
+                                        key,
+                                        host,
+                                        port,
+                                        db_name))
+
         print("starting process for {} #{} of {}".format(route_dir,
                                                 i, len(route_dir_list)))
         route_df = update_route_metrics(route_dir)
@@ -49,9 +55,15 @@ def route_metrics():
             write_to_table(route_df, engine, table_name='route_metrics',
                                                 if_exists='append')
 
+        conn = psycopg2.connect(dbname=db_name,
+                                user=user,
+                                password=key,
+                                host=host,
+                                port=port)
+        update_status_database(conn, route_dir)
+        conn.close()
+        cur.close()
 
-    cur.close()
-    conn.close()
 
 def update_route_metrics(route_dir):
     '''
@@ -105,7 +117,7 @@ def update_route_metrics(route_dir):
     weekday_stop_list = list(weekday_route_stats['stop_name'].unique())
 
     hour_column_list = ['route_id','is_week','stop_name','stop_id',
-                    'direction_id','route_dir',
+                    'direction_id','route_dir', 'stop_hours',
                     'hour0_10','hour0_90','hour1_10',
                     'hour1_90', 'hour2_10','hour2_90','hour3_10',
                     'hour3_90', 'hour4_10','hour4_90','hour5_10',
@@ -123,6 +135,8 @@ def update_route_metrics(route_dir):
 
     for i, weekday_stop in enumerate(weekday_stop_list):
         is_week = True
+        stop_mask = weekday_route_stats['stop_name'] == weekday_stop
+        stop_id = weekday_route_stats[stop_mask]['stop_id'].values[0]
         #print(route_id, stop_id, weekday_stop, is_week)
         update_hour_df = build_hour_stop_stats_row(route_id,
                                                 stop_id,
@@ -163,11 +177,17 @@ def build_hour_stop_stats_row(route_id, stop_id, stop_name, week_df,
     '''
     '''
     user_stop = week_df['stop_name'] == stop_name
+    stop_hours = list(week_df[user_stop]['hour'].unique())
+
     hours_range = np.arange(0,24,1)
     hours_week_df = pd.DataFrame({'route_id':route_id, 'stop_id':stop_id,
                                 'stop_name':stop_name, 'is_week':is_week,
                                 'direction_id':direction_id,
-                                'route_dir':route_dir}, index=[0])
+                                'route_dir':route_dir,
+                                'stop_hours':'placeholder'}, index=[0])
+
+    hours_week_df.at[0, 'stop_hours'] = stop_hours
+
     for hour in hours_range:
         #print('starting hour {} stop {}'.format(hour, stop_name))
         #print(list(week_df[user_stop]['hour'].unique()))
@@ -199,6 +219,16 @@ def write_to_table(df, db_engine, table_name, if_exists='fail'):
             copy_cmd = "COPY %s FROM STDIN HEADER DELIMITER '|' CSV" % table_name
             cursor.copy_expert(copy_cmd, string_data_io)
         connection.connection.commit()
+    connection.close()
+
+def update_status_database(conn, route_dir):
+    cur = conn.cursor()
+
+    cur.execute("UPDATE route_metric_status "
+                "SET updated = 'true' "
+                    "WHERE route_dir  = (%s)",
+                    (route_dir))
+    conn.commit()
 
 def percentile(n):
     def percentile_(x):
