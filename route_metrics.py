@@ -30,7 +30,7 @@ def route_metrics():
     #set up the engine
     engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
                                     user,
-                                    db_key,
+                                    key,
                                     host,
                                     port,
                                     db_name))
