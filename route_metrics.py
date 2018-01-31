@@ -226,8 +226,8 @@ def update_status_database(conn, route_dir):
     print(route_dir)
     cur.execute("UPDATE route_metric_status "
                 "SET updated = 'true' "
-                    "WHERE route_dir = '(%s)' ",
-                    (route_dir))
+                    "WHERE route_dir = (%s) ",
+                    [route_dir])
     conn.commit()
 
 def percentile(n):
