@@ -41,6 +41,7 @@ def route_metrics():
         print("starting process for {} #{} of {}".format(route_dir,
                                                 i, len(route_dir_list)))
         route_df = update_route_metrics(route_dir)
+        print("writing {} to the database".format(route_dir))
         if i == 0:
             write_to_table(route_df, engine, table_name='route_metrics',
                                                 if_exists='replace')
@@ -163,7 +164,7 @@ def build_hour_stop_stats_row(route_id, stop_id, stop, week_df,
                                 'direction_id':direction_id,
                                 'route_dir':route_dir}, index=[0])
     for hour in hours_range:
-        print('starting hour {} stop {}'.format(hour, stop))
+        #print('starting hour {} stop {}'.format(hour, stop))
         if hour in week_df[user_stop]['hour'].unique():
             hour_mask = week_df['hour'] == hour
             col_10_name = 'hour{}_10'.format(hour)
