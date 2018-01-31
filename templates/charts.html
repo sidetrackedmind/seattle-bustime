@@ -41,10 +41,16 @@
 		data: JSON.stringify(user_info),
 		success: function(result){
 		  $("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
+          $("#confidence_int").html("90% confident the bus will arrive between " + result.conf_interval_10.toPrecision(3) + " and " + result.conf_interval_90.toPrecision(3) + " of the scheduled time");
+          var c = document.getElementById("myCanvas");
+          var ctx = c.getContext("2d");
+          var x = 500 - ( result.pred_width / 2)
+          ctx.fillRect(x, 10, result.pred_width, 20);
 		}
 	  });
 	}
   </script>
+
   <style>
     .hidden {
 	  display: none;
@@ -164,7 +170,7 @@
         <div class="card-header">
 
           <i class="fa fa-area-chart"></i> User Inputs</div>
-        <div class="user_inputs">
+        <div class="user_inputs" align="center">
 
             <tr>
                 <form action="/route">
@@ -210,8 +216,12 @@
       </div>
       <!-- Prediction Space-->
       <hr>
-      <div class="col-sm-4 text-center my-auto">
-        <h3 id="prediction"></h3>
+      <div align="center">
+        <h3 id="prediction" align="center"></h3>
+        <h3 id="confidence_int" align="center"></h3>
+      </div>
+      <div align="center">
+        <canvas id="myCanvas" width="1000" height="40">
       </div>
       <hr>
       <!-- Map Area-->
@@ -263,6 +273,7 @@
         </div>
       </div>
     </div>
+
     <!-- Bootstrap core JavaScript-->
     <script src="static/vendor/jquery/jquery.min.js"></script>
     <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

@@ -50,10 +50,11 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
             and stop_name = '{}' '''.format(select_string, route_short_name, stop_name)
 
     cur.execute(query)
-    query_list = cur.fetchall()
-    route_dir_stop = query_list[0][0]
-    stop_sequence = query_list[0][1]
-    route_id = query_list[0][2]
+    query_list = cur.fetchone()
+    print(query_list)
+    route_dir_stop = query_list[0]
+    stop_sequence = query_list[1]
+    route_id = query_list[2]
     route_dir = str(route_id) + '_' + str(direction)
 
     date = datetime.strptime(date_string, '%Y-%m-%d')
