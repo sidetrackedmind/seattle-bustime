@@ -93,7 +93,7 @@ def route_to_train_test(route_short_name, stop_name, direction):
 
     return fit_model, predictions, y_test, error**(1/2), all_columns_str
 
-def get_stop_metrics(route_short_name, stop_name, direction):
+def get_route_metrics(route_short_name, stop_name, direction):
     '''This is a function to process user input
     grab a pickled model and output stop metrics
     INPUT
@@ -122,10 +122,11 @@ def get_stop_metrics(route_short_name, stop_name, direction):
 
     query = '''
             select route_id
-            from route_select
+            from route_all
             where route_short_name = '{}'
             and stop_name = '{}'
-            and direction_id = {} '''.format(route_short_name,
+            and direction_id = {}
+            LIMIT 1'''.format(route_short_name,
                                         stop_name,
                                         direction)
 
@@ -137,7 +138,7 @@ def get_stop_metrics(route_short_name, stop_name, direction):
     route_dir = str(route_id) + '_' + str(direction)
     pickle_path = build_filename(route_id, direction)
 
-    model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
+    model_col_list = ['route_dir_stop','stop_id','stop_name','stop_sequence','month', 'day', 'hour','dow','delay']
 
     select_string = column_list_to_string(model_col_list)
 
@@ -148,7 +149,7 @@ def get_stop_metrics(route_short_name, stop_name, direction):
             and direction_id = {}
             '''.format(select_string, route_id, direction)
 
-    print('getting historical route information')
+    print('getting historical route information for {}-{}'.format(route_id, direction))
     cur.execute(query)
     query_list = cur.fetchall()
     result_df = pd.DataFrame(query_list, columns=model_col_list)

@@ -25,17 +25,19 @@ conn = psycopg2.connect(dbname=db_name,
                         port=port)
 cur = conn.cursor()
 
+query_selections = ['route_dir','short_dir','route_short_name','direction_id',
+                    'stop_id','route_id','stop_name','stop_sequence']
 
-cur.execute("SELECT * "
-            "FROM route_info"
+query_string = column_list_to_string(query_selections)
+
+cur.execute('''SELECT {}
+            FROM route_info'''.format(query_string)
                 )
 route_short_list = cur.fetchall()
 
 
 route_short_df = pd.DataFrame(route_short_list,
-                        columns=['route_dir','route_short_name',
-                        'stop_name','direction_id','route_id',
-                        'short_dir','route_short_dir'])
+                        columns=query_selections)
 
 route_list = list(route_short_df['short_dir'].unique())
 
@@ -107,6 +109,15 @@ def predict():
 
     prediction = dashboard_pipe(route_short_name, stop, direction,
                             date, hour)
+
+def column_list_to_string(list):
+    column_str = ''
+    for i, col in enumerate(list):
+        if i == 0:
+            column_str += str(col)
+        else:
+            column_str += ","+str(col)
+    return column_str
 
     return jsonify({'prediction': prediction})
 if __name__ == '__main__':
