@@ -121,16 +121,21 @@ def update_route_metrics(route_dir):
                     'hour23_90']
 
 
-    for weekday_stop in weekday_stop_list:
+    for i, weekday_stop in enumerate(weekday_stop_list):
         is_week = True
-        print(route_id, stop_id, weekday_stop, is_week)
-        full_hour_df = build_hour_stop_stats_row(route_id,
+        #print(route_id, stop_id, weekday_stop, is_week)
+        update_hour_df = build_hour_stop_stats_row(route_id,
                                                 stop_id,
                                                 weekday_stop,
                                                 weekday_route_stats,
                                                 direction_id,
                                                 route_dir, is_week)
-        full_hour_df = full_hour_df[hour_column_list]
+        if i == 0:
+            full_hour_df = update_hour_df.copy()
+            full_hour_df = full_hour_df[hour_column_list]
+        else:
+            full_hour_df = full_hour_df.append(update_hour_df)
+            full_hour_df = full_hour_df[hour_column_list]
 
 
     for weekend_stop in weekend_stop_list:
@@ -153,18 +158,19 @@ def update_route_metrics(route_dir):
 
 
 
-def build_hour_stop_stats_row(route_id, stop_id, stop, week_df,
+def build_hour_stop_stats_row(route_id, stop_id, stop_name, week_df,
                                 direction_id, route_dir, is_week=True):
     '''
     '''
-    user_stop = week_df['stop_name'] == stop
+    user_stop = week_df['stop_name'] == stop_name
     hours_range = np.arange(0,24,1)
     hours_week_df = pd.DataFrame({'route_id':route_id, 'stop_id':stop_id,
-                                'stop_name':stop, 'is_week':is_week,
+                                'stop_name':stop_name, 'is_week':is_week,
                                 'direction_id':direction_id,
                                 'route_dir':route_dir}, index=[0])
     for hour in hours_range:
-        #print('starting hour {} stop {}'.format(hour, stop))
+        #print('starting hour {} stop {}'.format(hour, stop_name))
+        #print(list(week_df[user_stop]['hour'].unique()))
         if hour in week_df[user_stop]['hour'].unique():
             hour_mask = week_df['hour'] == hour
             col_10_name = 'hour{}_10'.format(hour)
