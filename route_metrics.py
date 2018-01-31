@@ -22,7 +22,7 @@ def route_metrics():
     cur = conn.cursor()
 
 
-    cur.execute("SELECT DISTINCT route_dir"
+    cur.execute("SELECT DISTINCT route_dir "
                 "FROM route_info"
                 )
     route_dir_list = cur.fetchall()
