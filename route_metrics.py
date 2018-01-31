@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import psycopg2
+import io
 from sqlalchemy import create_engine
 from route_model_train import get_route_metrics
 
