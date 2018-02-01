@@ -7,6 +7,7 @@ import model_predict
 import boto3
 import pickle
 import prediction_check
+import io
 
 def predict_all_routes():
     '''This is a function to process user input into the model format
