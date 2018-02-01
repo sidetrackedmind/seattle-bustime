@@ -50,6 +50,32 @@ route_short_df = pd.DataFrame(route_short_list,
 
 route_list = list(route_short_df['short_dir'].unique())
 
+
+conn.rollback()
+cur = conn.cursor()
+cur.execute("SELECT * "
+            "FROM route_metrics"
+                )
+stop_hour_list = cur.fetchall()
+
+hour_column_list = ['route_id','is_week','stop_name','stop_id',
+                    'direction_id','route_dir', 'stop_hours',
+                    'hour0_10','hour0_90','hour1_10',
+                    'hour1_90', 'hour2_10','hour2_90','hour3_10',
+                    'hour3_90', 'hour4_10','hour4_90','hour5_10',
+                    'hour5_90', 'hour6_10','hour6_90','hour7_10',
+                    'hour7_90', 'hour8_10','hour8_90','hour9_10',
+                    'hour9_90', 'hour10_10','hour10_90','hour11_10',
+                    'hour11_90', 'hour12_10','hour12_90','hour13_10',
+                    'hour13_90', 'hour14_10','hour14_90','hour15_10',
+                    'hour15_90', 'hour16_10','hour16_90','hour17_10',
+                    'hour17_90', 'hour18_10','hour18_90','hour19_10',
+                    'hour19_90', 'hour20_10','hour20_90','hour21_10',
+                    'hour21_90', 'hour22_10','hour22_90','hour23_10',
+                    'hour23_90']
+
+stop_hour_df = pd.DataFrame(stop_hour_list, columns=hour_column_list)
+
 #number_routes = []
 #for route in route_list:
 #    if route not in str_routes:
@@ -63,6 +89,11 @@ route_list = list(route_short_df['short_dir'].unique())
 hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
+def select_stop_conf(stop_hour_df, stop_name):
+    route_mask = (route_short_df['short_dir'] == route_name)
+    select_stop_names = route_short_df[route_mask]['stop_name'].values.tolist()
+
+    return hour_conf_intervals
 
 def select_route_name(route_short_df, route_name):
     route_mask = (route_short_df['short_dir'] == route_name)
@@ -127,14 +158,22 @@ def predict():
     prediction = dashboard_pipe(route_short_name, stop, direction,
                             date, hour)
 
-    conf_interval_10 = prediction - 2
-    conf_interval_90 = prediction + 2
-    pred_width = (conf_interval_90 - conf_interval_10)*(800/10)
+    route_stop_mask = ((stop_hour_df['stop_name'] == stop) &
+                        (stop_hour_df['route_dir'] == route))
+
+    user_hour = hour
+    per_10_col = 'hour{}_10'.format(user_hour)
+    per_90_col = 'hour{}_90'.format(user_hour)
+    conf_interval_arr = stop_hour_df[route_stop_mask][[per_10_col, per_90_col]].values
+
+
+    conf_interval_10 = conf_interval_arr[0]
+    conf_interval_90 = conf_interval_arr[1]
 
     return jsonify({'prediction': prediction,
                     'conf_interval_10': conf_interval_10,
-                    'conf_interval_90': conf_interval_90,
-                    'pred_width': pred_width})
+                    'conf_interval_90': conf_interval_90
+                    })
 
 
 

@@ -40,16 +40,75 @@
 		contentType: "application/json",
 		data: JSON.stringify(user_info),
 		success: function(result){
-		  $("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
-          $("#confidence_int").html("90% confident the bus will arrive between " + result.conf_interval_10.toPrecision(3) + " and " + result.conf_interval_90.toPrecision(3) + " of the scheduled time");
+		  //$("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
+          //$("#confidence_int").html("90% confident the bus will arrive between " + result.conf_interval_10.toPrecision(3) + " and " + result.conf_interval_90.toPrecision(3) + " of the scheduled time");
           var c = document.getElementById("myCanvas");
           var ctx = c.getContext("2d");
-          var x = 500 - ( result.pred_width / 2)
-          ctx.fillRect(x, 10, result.pred_width, 20);
+          var num_line_start = 100
+          var num_line_end = 900
+          var num_line_val_range = 30
+          var num_line_len = num_line_end - num_line_start
+          var rect_left = ((result.conf_interval_10 + 15)/num_line_val_range) * num_line_len + num_line_start
+          var rect_right = ((result.conf_interval_90 + 15)/num_line_val_range) * num_line_len + num_line_start
+          var rect_width = rect_right - rect_left
+          var right_text_x = rect_right + 5
+          var left_text_x = rect_left - 5
+          var line_x = ((result.prediction + 15)/num_line_val_range) * num_line_len + num_line_start
+          ctx.fillRect(rect_left, 40, rect_width, 20);
+          ctx.font = "20px Segoe UI";
+          ctx.textAlign= "end";
+          ctx.fillText(result.conf_interval_10.toPrecision(3),left_text_x,45);
+          ctx.textAlign= "start";
+          ctx.fillText(result.conf_interval_90.toPrecision(3),right_text_x,45);
+          ctx.strokeStyle = "red";
+          ctx.moveTo(line_x, 20);
+          ctx.lineTo(line_x, 60);
+          ctx.lineWidth=10;
+          ctx.stroke();
+          ctx.textAlign= "center";
+          ctx.fillText(result.prediction.toPrecision(3),line_x,15);
+
+          //number line --- always the same for context
+          ctx.strokeStyle = "black";
+          ctx.moveTo(num_line_start, 80);
+          ctx.lineTo(num_line_end, 80);
+          ctx.lineWidth=2;
+          ctx.stroke();
+          ctx.strokeStyle = "black";
+          ctx.moveTo(500, 75);
+          ctx.lineTo(500, 85);
+          ctx.lineWidth=2;
+          ctx.stroke();
+          ctx.textAlign= "center";
+          ctx.fillText("On Schedule",500,110);
+          //right side of number line
+          ctx.strokeStyle = "black";
+          ctx.moveTo(900, 75);
+          ctx.lineTo(900, 85);
+          ctx.lineWidth=2;
+          ctx.stroke();
+          ctx.textAlign= "center";
+          ctx.fillText("+15 Minutes",900,110);
+          //left side of number line
+          ctx.strokeStyle = "black";
+          ctx.moveTo(100, 75);
+          ctx.lineTo(100, 85);
+          ctx.lineWidth=2;
+          ctx.stroke();
+          ctx.textAlign= "center";
+          ctx.fillText("-15 Minutes",100,110);
+
 		}
 	  });
 	}
   </script>
+  <script>
+      clearCanvas = function(){
+          var c = document.getElementById("myCanvas");
+          var ctx = c.getContext("2d");
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      </script>
 
   <style>
     .hidden {
@@ -221,7 +280,7 @@
         <h3 id="confidence_int" align="center"></h3>
       </div>
       <div align="center">
-        <canvas id="myCanvas" width="1000" height="40">
+        <canvas id="myCanvas" width="1000" height="120">
       </div>
       <hr>
       <!-- Map Area-->
