@@ -1,10 +1,12 @@
 import os
 import pandas as pd
 import numpy as np
+from sqlalchemy import create_engine
 import psycopg2
 import model_predict
 import boto3
 import pickle
+import prediction_check
 
 def predict_all_routes():
     '''This is a function to process user input into the model format
@@ -15,9 +17,17 @@ def predict_all_routes():
     OUTPUT
     -------
     None
-    updated train column in RDS "models" table
+    create RDS table with prediction metrics
+    called pred_metrics
     '''
-    pass
+    #engine params
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+
+    #set up engine
 
 def predict_one_route_pipeline(route_dir):
     '''
@@ -40,7 +50,7 @@ def predict_one_route_pipeline(route_dir):
             from models
             where route_dir = '{}' '''.format(route_dir)
 
-    print("getting pickle...")
+    print("getting pickle")
 
     cur.execute(query)
     query_list = cur.fetchall()
@@ -55,7 +65,7 @@ def predict_one_route_pipeline(route_dir):
 
     query_col_list = ['route_dir_stop','stop_sequence', 'month', 'day',
                     'hour', 'dow', 'delay', 'stop_name', 'stop_lat',
-                    'stop_lon', 'time_pct']
+                    'stop_lon', 'time_pct', 'shape_dist_traveled']
     select_string = column_list_to_string(query_col_list)
     query = '''
             select {}
@@ -65,7 +75,7 @@ def predict_one_route_pipeline(route_dir):
             and time_pct >= '2018-01-23'
                         '''.format(select_string, route_id, direction_id)
 
-    print("getting update data for {}...".format(route_dir))
+    print("getting update data for {}".format(route_dir))
 
     cur.execute(query)
     stop_updates_list = cur.fetchall()
@@ -84,6 +94,10 @@ def predict_one_route_pipeline(route_dir):
         stop_lat = stop_updates[8]
         stop_lon = stop_updates[9]
         time_pct = stop_updates[10]
+        shape_dist_traveled = stop_updates[11]
+
+        if i % 1000 == 0:
+            print("completed {} updates".format(i))
 
         dummy_cols = ['route_dir_stop','month', 'day', 'hour','dow']
         user_input_values = [route_dir_stop, float(stop_sequence), month, day, hour, dow]
@@ -101,26 +115,33 @@ def predict_one_route_pipeline(route_dir):
         prediction = fit_model.predict(X_array)[0]
 
         update_route_df = build_output_df_row(route_dir_stop, route_dir, time_pct,
-                                stop_sequence, stop_name, stop_lat, stop_lon,
+                                stop_sequence, shape_dist_traveled, stop_name, stop_lat, stop_lon,
                                 month, day, hour, dow, delay, prediction)
 
         if i == 0:
             full_route_output_df = update_route_df.copy()
         else:
             full_route_output_df = full_route_output_df.append(update_route_df)
+    cur.close()
+    conn.close()
+
+    prediction_check(full_route_output_df, route_dir)
 
     return full_route_output_df
 
 
-def build_output_df_row(route_dir_stop, route_dir, time_pct, stop_sequence, stop_name,
+def build_output_df_row(route_dir_stop, route_dir, time_pct, stop_sequence,
+                        shape_dist_traveled, stop_name,
                         stop_lat, stop_lon, month, day, hour, dow,
                         delay, prediction):
 
-    output_cols = ['route_dir_stop','route_dir','time_pct','stop_sequence','stop_name',
+    output_cols = ['route_dir_stop','route_dir','time_pct','stop_sequence',
+                    'shape_dist_traveled', 'stop_name',
                     'stop_lat', 'stop_lon','month', 'day', 'hour','dow',
                     'act_delay', 'prediction']
 
-    output_values = [route_dir_stop, route_dir, time_pct, float(stop_sequence), stop_name,
+    output_values = [route_dir_stop, route_dir, time_pct, float(stop_sequence),
+                    shape_dist_traveled, stop_name,
                     stop_lat, stop_lon, month, day, hour, dow,
                     (delay)/60, prediction]
 
@@ -141,13 +162,21 @@ def column_list_to_string(list):
             column_str += ","+str(col)
     return column_str
 
-def build_filename(route_id, direction):
-    prefix = 'models/'
-    route_dir = str(route_id) + '_' + str(direction) + '/'
-    suffix = 'model.pkl'
-    filename = prefix + route_dir + suffix
-    return filename
+def write_to_table(df, db_engine, table_name, if_exists='fail'):
+    string_data_io = io.StringIO()
+    df.to_csv(string_data_io, sep='|', index=False)
+    pd_sql_engine = pd.io.sql.pandasSQL_builder(db_engine)
+    table = pd.io.sql.SQLTable(table_name, pd_sql_engine, frame=df,
+                               index=False, if_exists=if_exists)
+    table.create()
+    string_data_io.seek(0)
+    string_data_io.readline()  # remove header
+    with db_engine.connect() as connection:
+        with connection.connection.cursor() as cursor:
+            copy_cmd = "COPY %s FROM STDIN HEADER DELIMITER '|' CSV" % table_name
+            cursor.copy_expert(copy_cmd, string_data_io)
+        connection.connection.commit()
 
 
 if __name__ == "__main__":
-    train_all_routes()
+    predict_all_routes()
