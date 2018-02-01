@@ -75,6 +75,7 @@ hour_column_list = ['route_id','is_week','stop_name','stop_id',
                     'hour23_90']
 
 stop_hour_df = pd.DataFrame(stop_hour_list, columns=hour_column_list)
+print(len(stop_hour_df))
 
 #number_routes = []
 #for route in route_list:
@@ -89,17 +90,27 @@ stop_hour_df = pd.DataFrame(stop_hour_list, columns=hour_column_list)
 hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
-def select_stop_conf(stop_hour_df, stop_name):
-    route_mask = (route_short_df['short_dir'] == route_name)
-    select_stop_names = route_short_df[route_mask]['stop_name'].values.tolist()
+def select_stop_conf(stop_hour_df, stop_name, route_dir, hour):
+    route_stop_mask = ((stop_hour_df['stop_name'] == stop_name) &
+                        (stop_hour_df['route_dir'] == route_dir))
 
-    return hour_conf_intervals
+    user_hour = hour
+    per_10_col = 'hour{}_10'.format(user_hour)
+    per_90_col = 'hour{}_90'.format(user_hour)
+    conf_interval_arr = stop_hour_df[route_stop_mask][[per_10_col, per_90_col]].values[0]
+
+    return conf_interval_arr
 
 def select_route_name(route_short_df, route_name):
     route_mask = (route_short_df['short_dir'] == route_name)
-    select_stop_names = route_short_df[route_mask]['stop_name'].values.tolist()
+    select_stop_names = route_short_df[route_mask]['stop_name'].unique().tolist()
 
     return select_stop_names
+
+def short_dir_to_route_dir(route_short_df, short_dir):
+    short_dir_mask = route_short_df['short_dir'] == short_dir
+    route_dir = route_short_df[short_dir_mask]['route_dir'].unique()[0]
+    return route_dir
 
 cur.close()
 conn.close()
@@ -143,28 +154,25 @@ def predict():
 
     print(user_data)
 
-    route, stop, hour, date = (user_data['user_route'],
+    short_dir, stop_name, hour, date = (user_data['user_route'],
                                 user_data['user_stop'],
                                 int(user_data['user_hour']),
                                 user_data['user_date'])
 
-    route_short_name = route.split('_')[0]
-    direction = route.split('_')[1]
+    route_short_name = short_dir.split('_')[0]
+    direction = short_dir.split('_')[1]
 
-    print(route_short_name, stop, direction,
+    print(route_short_name, stop_name, direction,
                             date, hour)
 
 
-    prediction = dashboard_pipe(route_short_name, stop, direction,
+    prediction = dashboard_pipe(route_short_name, stop_name, direction,
                             date, hour)
 
-    route_stop_mask = ((stop_hour_df['stop_name'] == stop) &
-                        (stop_hour_df['route_dir'] == route))
+    route_dir = short_dir_to_route_dir(route_short_df, short_dir)
 
-    user_hour = hour
-    per_10_col = 'hour{}_10'.format(user_hour)
-    per_90_col = 'hour{}_90'.format(user_hour)
-    conf_interval_arr = stop_hour_df[route_stop_mask][[per_10_col, per_90_col]].values
+    conf_interval_arr = select_stop_conf(stop_hour_df, stop_name, route_dir, hour)
+
 
 
     conf_interval_10 = conf_interval_arr[0]
