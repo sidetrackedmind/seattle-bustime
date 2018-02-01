@@ -27,6 +27,8 @@
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
 
 <script>
+
+
     predict = function(){
 	  user_route = $("#routeSelect").val()
 	  user_stop = $("#stopSelect").val()
@@ -55,7 +57,7 @@
           var left_text_x = rect_left - 5
           var line_x = ((result.prediction + 15)/num_line_val_range) * num_line_len + num_line_start
           ctx.fillRect(rect_left, 40, rect_width, 20);
-          ctx.font = "20px Segoe UI";
+          ctx.font = "12px Segoe UI";
           ctx.textAlign= "end";
           ctx.fillText(result.conf_interval_10.toPrecision(3),left_text_x,45);
           ctx.textAlign= "start";
@@ -106,7 +108,7 @@
       clearCanvas = function(){
           var c = document.getElementById("myCanvas");
           var ctx = c.getContext("2d");
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.clearRect(0, 0, c.width, c.height);
       }
       </script>
 
@@ -114,6 +116,7 @@
     .hidden {
 	  display: none;
 	}
+    #mapid { height: 350px; width: 50%; float: left;}
   </style>
 </head>
 
@@ -275,23 +278,13 @@
       </div>
       <!-- Prediction Space-->
       <hr>
-      <div align="center">
-        <h3 id="prediction" align="center"></h3>
-        <h3 id="confidence_int" align="center"></h3>
+      <div id="prediction_graph">
+        <canvas id="myCanvas" width="1000" height="100"></canvas>
       </div>
-      <div align="center">
-        <canvas id="myCanvas" width="1000" height="120">
-      </div>
-      <hr>
       <!-- Map Area-->
-      <div class="card mb-3">
-        <div class="card-header">
-          <i class="fa fa-area-chart"></i> Put Map Here</div>
-        <div id="mapid">
-          <canvas id="MapArea" width="80%" height="30"></canvas>
-        </div>
-      </div>
-      <!-- Probability Chart Area-->
+      <div id="mapid"></div>
+
+      <!-- Probability Chart Area
       <div class="card mb-3">
         <div class="card-header">
           <i class="fa fa-area-chart"></i> Probability Chart</div>
@@ -300,7 +293,7 @@
         </div>
       </div>
       </div>
-    </div>
+    </div>-->
     <!-- /.container-fluid-->
     <!-- /.content-wrapper-->
     <footer class="sticky-footer">
@@ -332,7 +325,15 @@
         </div>
       </div>
     </div>
-
+    <script>
+    var mymap = L.map('mapid').setView([47.60, -122.32], 13);
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    maxZoom: 18,
+    id: 'mapbox.streets',
+    accessToken: 'pk.eyJ1IjoiYm1hbG5vciIsImEiOiJjamQ0Mmd4NmwwZHNyMzNyenZ5eGZ2YjFuIn0.OdTGjMcYBOji2YGX3hvmjA'
+    }).addTo(mymap);
+    </script>
     <!-- Bootstrap core JavaScript-->
     <script src="static/vendor/jquery/jquery.min.js"></script>
     <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
