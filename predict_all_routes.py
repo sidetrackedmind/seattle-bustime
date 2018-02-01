@@ -154,7 +154,7 @@ def predict_one_route_pipeline(route_dir):
     cur.close()
     conn.close()
 
-    prediction_check(full_route_output_df, route_dir)
+    prediction_check.prediction_check(full_route_output_df, route_dir)
 
     return full_route_output_df
 
