@@ -27,7 +27,36 @@ def predict_all_routes():
     host = os.environ["RDS_HOST"]
     port = os.environ["RDS_PORT"]
 
-    #set up engine
+    conn = psycopg2.connect(dbname=db_name,
+                            user=user,
+                            password=key,
+                            host=host,
+                            port=port)
+    cur = conn.cursor()
+
+    query = '''
+            select distinct (route_dir)
+            from route_info
+             '''
+
+    cur.execute(query)
+    route_dir_list = cur.fetchall()
+
+    for i, item in enumerate(route_dir_list):
+        route_dir = item[0]
+
+        route_output_df = predict_one_route_pipeline(route_dir)
+
+        #set up engine
+        engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
+                                        user,
+                                        key,
+                                        host,
+                                        port,
+                                        db_name))
+        print("writing {} to database".format(route_dir))
+        write_to_table(route_output_df, engine, table_name='pred_metrics',
+                                            if_exists='append')
 
 def predict_one_route_pipeline(route_dir):
     '''
