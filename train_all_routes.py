@@ -41,7 +41,7 @@ def train_all_routes():
     #mark route as "in progress"
     route_in_progress(conn, route_dir)
 
-    if status = "Done":
+    if status == "Done":
         pass
     else:
         conn = psycopg2.connect(dbname=db_name,
@@ -209,13 +209,15 @@ def find_next_route_dir(conn):
                     "LIMIT 1"
                         )
     except:
-        return "Done", None
+        status = "Done"
+        return status, None
 
     query_list = cur.fetchall()
 
     route_dir = query_list[0][0]
+    status = "Continue"
 
-    return "Continue", route_dir
+    return status, route_dir
 
 def route_in_progress(conn, route_dir):
     cur = conn.cursor()
