@@ -9,7 +9,7 @@ import boto3
 import pickle
 
 def route_to_train(route_dir, n_estimators=1500,
-            learning_rate=0.05, put_pickle=False, up_model_db=False):
+            learning_rate=0.05):
     '''This is a function to process user input into the model format
     INPUT
     -------
