@@ -64,14 +64,14 @@ def route_to_train(route_dir, n_estimators=1500,
     all_columns_str = column_list_to_string(all_column_list)
     X = result_dummies.values
     X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                    test_size=0.15, random_state=128)
+                                    test_size=0.3, random_state=128)
     gbr = GradientBoostingRegressor(n_estimators=n_estimators,
                                     learning_rate=learning_rate)
     print('starting model fit')
     fit_model = gbr.fit(X_train, y_train)
     print('model fit complete')
 
-    
+
     predictions = fit_model.predict(X_test)
     error = mean_squared_error(predictions, y_test)
 
