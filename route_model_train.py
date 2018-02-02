@@ -8,7 +8,8 @@ from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
 
-def route_to_train_test(route_short_name, stop_name, direction):
+def route_to_train(route_dir, n_estimators=1500,
+            learning_rate=0.05, put_pickle=False, up_model_db=False):
     '''This is a function to process user input into the model format
     INPUT
     -------
@@ -36,21 +37,8 @@ def route_to_train_test(route_short_name, stop_name, direction):
                             port=port)
     cur = conn.cursor()
 
-    query = '''
-            select route_id
-            from route_select
-            where route_short_name = '{}'
-            and stop_name = '{}'
-            and direction_id = {} '''.format(route_short_name,
-                                        stop_name,
-                                        direction)
-
-    print('finding route_id and direction_id')
-
-    cur.execute(query)
-    query_list = cur.fetchall()
-    route_id = query_list[0][0]
-    route_dir = str(route_id) + '_' + str(direction)
+    route_id = route_dir.split("_")[0]
+    direction = route_dir.split("_")[1]
     pickle_path = build_filename(route_id, direction)
 
     model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
@@ -62,6 +50,7 @@ def route_to_train_test(route_short_name, stop_name, direction):
             from updates
             where route_id = {}
             and direction_id = {}
+            and time_pct < '2018-01-23'
             '''.format(select_string, route_id, direction)
 
     print('getting historical route information')
@@ -77,14 +66,16 @@ def route_to_train_test(route_short_name, stop_name, direction):
     X = result_dummies.values
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                     test_size=0.15, random_state=128)
-    gbr = GradientBoostingRegressor(n_estimators=1500,
-                                    learning_rate=0.05)
+    gbr = GradientBoostingRegressor(n_estimators=n_estimators,
+                                    learning_rate=learning_rate)
     print('starting model fit')
     fit_model = gbr.fit(X_train, y_train)
     print('model fit complete')
-    put_pickle_model(fit_model, pickle_path)
 
-    update_model_database(conn, all_columns_str, pickle_path, route_dir)
+    if put_pickle:
+        put_pickle_model(fit_model, pickle_path)
+        update_model_database(conn, all_columns_str, pickle_path, route_dir)
+
     predictions = fit_model.predict(X_test)
     error = mean_squared_error(predictions, y_test)
 
@@ -92,6 +83,9 @@ def route_to_train_test(route_short_name, stop_name, direction):
     conn.close()
 
     return fit_model, predictions, y_test, error**(1/2), all_columns_str
+
+
+
 
 def get_route_metrics(route_short_name, stop_name, direction):
     '''This is a function to process user input
@@ -170,41 +164,3 @@ def column_list_to_string(list):
         else:
             column_str += ","+str(col)
     return column_str
-
-def build_filename(route_id, direction):
-    prefix = 'models/'
-    route_dir = str(route_id) + '_' + str(direction) + '/'
-    suffix = 'model.pkl'
-    filename = prefix + route_dir + suffix
-    return filename
-
-def put_pickle_model(fit_model, filename):
-        '''
-
-        Output:
-        -------
-        Writes pickled model to route_direction specific
-        s3 bucket location
-        '''
-
-
-        with open('model.pkl', 'wb') as f:
-            pickle.dump(fit_model, f)
-
-        bucket_name = os.environ["BUS_BUCKET_NAME"]
-
-        s3 = boto3.client('s3')
-
-        s3.put_object(Bucket=bucket_name,
-                        Body=open('model.pkl', 'rb'), Key=filename)
-
-def update_model_database(conn, all_columns, pickle_path, route_dir):
-    cur = conn.cursor()
-
-    cur.execute("UPDATE models "
-                "SET pickle_path = (%s),"
-                    "model_columns = (%s),"
-                    "trained = 'true' "
-                    "WHERE route_dir  = (%s)",
-                    (pickle_path, all_columns, route_dir))
-    conn.commit()
