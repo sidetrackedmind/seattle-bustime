@@ -39,7 +39,6 @@ def route_to_train(route_dir, n_estimators=1500,
 
     route_id = route_dir.split("_")[0]
     direction = route_dir.split("_")[1]
-    pickle_path = build_filename(route_id, direction)
 
     model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
 
