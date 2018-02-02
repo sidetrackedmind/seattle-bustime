@@ -71,10 +71,7 @@ def route_to_train(route_dir, n_estimators=1500,
     fit_model = gbr.fit(X_train, y_train)
     print('model fit complete')
 
-    if put_pickle:
-        put_pickle_model(fit_model, pickle_path)
-        update_model_database(conn, all_columns_str, pickle_path, route_dir)
-
+    
     predictions = fit_model.predict(X_test)
     error = mean_squared_error(predictions, y_test)
 
