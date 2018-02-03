@@ -118,7 +118,7 @@ def crossval_one(params):
    test_errors = []
    log_losses = []
    aucs = []
-   model = GradientBoostingClassifier(loss='quantile', n_estimators=1000,
+   model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
                                    max_depth=td, learning_rate=0.025,
                                    subsample=0.5,
                                    random_state=128)
