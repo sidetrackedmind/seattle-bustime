@@ -149,7 +149,7 @@ def crossval_one_depth(params):
     (td, k, X_train, y_train, X_test, y_test) = params
     test_errors = []
     mse_losses = []
-    model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
+    model = GradientBoostingRegressor(loss='quantile', n_estimators=1500,
                                    max_depth=td, learning_rate=0.025,
                                    subsample=0.5,
                                    random_state=128)
