@@ -91,8 +91,7 @@ def make_params(tree_depths, n_folds, X, y):
    """
    params = []
    for td in tree_depths:
-       for k, (train_idxs, test_idxs) in enumerate(KFold(n=X.shape[0],
-                                                            n_folds=n_folds,
+       for k, (train_idxs, test_idxs) in enumerate(KFold(n_folds=n_folds,
                                                             shuffle=True,
                                                             random_state=1)):
 
