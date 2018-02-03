@@ -12,6 +12,7 @@ def get_route_params(route_dir):
     '''This is a function to process user input into the model format
     INPUT
     -------
+    route_dir - route and direction unique id
 
 
     OUTPUT
@@ -129,9 +130,9 @@ def crossval_one(params):
         mse_losses.append(mean_squared_error(y_test, y_pred))
         aucs.append(roc_auc_score(y_test, y_pred))
 
-    write_cross_val_results(td, k, test_errors, log_losses, aucs)
+    write_cross_val_results(td, k, test_errors, mse_losses, aucs)
 
-    return td, k, test_errors, log_losses, aucs, model
+    return td, k, test_errors, mse_losses, aucs, model
 
 
 def get_route_metrics(route_short_name, stop_name, direction):
@@ -212,14 +213,24 @@ def column_list_to_string(list):
             column_str += ","+str(col)
     return column_str
 
-def write_cross_val_results(td, k, test_errors, log_losses, aucs):
+def write_cross_val_results(td, k, test_errors, mse_losses, aucs):
+    '''
+    INPUT
+    ------
+    values from cross validation
+    td - tree depth
+    k - kfold number idx
+    test_errors - errors from gradient boosted regressor
+
+
+    '''
     file_path = './cv_tracker.txt'
     with open(file_path, "a") as f:
         f.write(td,", ",k)
         f.write("\n")
         f.write(test_errors)
         f.write("\n")
-        f.write(log_losses)
+        f.write(mse_losses)
         f.write("\n")
         f.write(aucs)
         f.write("\n")
