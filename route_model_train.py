@@ -39,20 +39,32 @@ def get_best_route_params(route_dir):
     alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
     n_estimators = 3000
 
+    print("getting tree and alpha params")
     tree_params, alpha_params = get_route_params(route_dir, tree_depths,
                                         alphas, n_folds, n_estimators)
 
-    pool = multiprocessing.Pool(12)
+    print("cross validate for max depth")
+    pool1 = multiprocessing.Pool(12)
 
-    cv_depth_result = pool.map(crossval_one_depth, tree_params)
+    cv_depth_result = pool1.map(crossval_one_depth, tree_params)
 
-    cv_alpha_result = pool.map(crossval_one_alpha, tree_params)
+    print("cross validate for alpha")
+
+    pool2 = multiprocessing.Pool(12)
+
+    cv_alpha_result = pool2.map(crossval_one_alpha, tree_params)
+
+    print("find best depth")
 
     best_depth = find_best_depth(cv_depth_result, n_estimators, k_folds,
                                                             tree_depths)
 
+    print("find best alpha")
+
     best_alpha = find_best_alpha(cv_alpha_result, n_estimators, k_folds,
                                                                 alphas)
+
+    print("update cv database")
 
     update_cv_database(conn, best_alpha, best_depth, route_dir)
 
