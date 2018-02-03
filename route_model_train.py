@@ -8,11 +8,12 @@ from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
 
-def get_route_params(route_dir):
+def get_route_params(route_dir, param_type="tree_depths"):
     '''This is a function to process user input into the model format
     INPUT
     -------
     route_dir - route and direction unique id
+    param_type = you can grid search for either "tree_depth" or "alphas"
 
 
     OUTPUT
@@ -65,18 +66,17 @@ def get_route_params(route_dir):
     X = result_dummies.values
 
     #change CV params as necessary
-    #tree_depths = [3, 5, 7]
-    tree_depths = None
-    alphas = [0.85, 0.9, 0.95]
     n_folds = 6
-
-    params = make_params(tree_depths, alphas, n_folds, X, y)
-
-
+    if param_type == "tree_depths"
+        tree_depths = [3, 5, 7]
+        params = make_tree_params(tree_depths, n_folds, X, y)
+    if param_type == "alphas"
+        alphas = [0.85, 0.9, 0.95]
+        params = make_alpha_params(alphas, n_folds, X, y)
 
     return params
 
-def make_params(tree_depths=None, alphas=None, n_folds, X, y):
+def make_tree_params(tree_depths, n_folds, X, y):
     """
     Create a list of parameters to input into crossval_one for parallelization.
 
@@ -94,25 +94,44 @@ def make_params(tree_depths=None, alphas=None, n_folds, X, y):
     """
 
     params = []
-    if tree_depths != None:
-        kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
-        for td in tree_depths:
-            for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
+    kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
+    for td in tree_depths:
+        for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
 
-                X_train, y_train = X[train_idxs, :], y[train_idxs]
-                X_test, y_test = X[test_idxs, :], y[test_idxs]
-                params.append((td, k, X_train, y_train, X_test, y_test))
-    if alpha != None:
-        kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
-        for alpha in alphas:
-            for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
+            X_train, y_train = X[train_idxs, :], y[train_idxs]
+            X_test, y_test = X[test_idxs, :], y[test_idxs]
+            params.append((td, k, X_train, y_train, X_test, y_test))
 
-                X_train, y_train = X[train_idxs, :], y[train_idxs]
-                X_test, y_test = X[test_idxs, :], y[test_idxs]
-                params.append((alpha, k, X_train, y_train, X_test, y_test))
     return params
 
-def crossval_one(params):
+def make_alpha_params(alphas, n_folds, X, y):
+    """
+    Create a list of parameters to input into crossval_one for parallelization.
+
+    Input
+    ------
+    alphas : List of alphas to gridsearch across
+    n_folds : The number of folds to use in K-fold CV
+    X : Full dataset, a numpy array
+    y : Labels, a numpy array
+
+    Output
+    ------
+    params : A list containing tuples (alpha, k, X_train, y_train, X_test, y_test)
+            The length of params will be len(alphas) * n_folds
+    """
+
+    params = []
+    kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
+    for alpha in alphas:
+        for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
+
+            X_train, y_train = X[train_idxs, :], y[train_idxs]
+            X_test, y_test = X[test_idxs, :], y[test_idxs]
+            params.append((alpha, k, X_train, y_train, X_test, y_test))
+    return params
+
+def crossval_one_depth(params):
     """
     Perform one fold of cross-validation with one tree depth
 
@@ -127,12 +146,12 @@ def crossval_one(params):
     test_scores : A list, the model loss at each stage
     model : The model trained on the given parameters
     """
-    (alpha, k, X_train, y_train, X_test, y_test) = params
+    (td, k, X_train, y_train, X_test, y_test) = params
     test_errors = []
     mse_losses = []
     model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
-                                   max_depth=5, learning_rate=0.025,
-                                   subsample=0.5, alpha=alpha,
+                                   max_depth=td, learning_rate=0.025,
+                                   subsample=0.5,
                                    random_state=128)
     model.fit(X_train, y_train)
 
@@ -141,8 +160,38 @@ def crossval_one(params):
         mse_losses.append(mean_squared_error(y_test, y_pred))
 
 
-    return alpha, k, test_errors, mse_losses, model
+    return td, k, test_errors, mse_losses
 
+def crossval_one_alpha(params):
+    """
+    Perform one fold of cross-validation with one tree depth
+
+    Input
+    ------
+    params : The output of make_params
+
+    Output
+    ------
+    alpha : The alpha at the current stage
+    k : The current cross-validation fold (can be used to map back to X and y from params)
+    test_scores : A list, the model loss at each stage
+    model : The model trained on the given parameters
+    """
+    (alpha, k, X_train, y_train, X_test, y_test) = params
+    test_errors = []
+    mse_losses = []
+    model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
+                                   max_depth=5, learning_rate=0.025,
+                                   subsample=0.5, alpha=alpha
+                                   random_state=128)
+    model.fit(X_train, y_train)
+
+    for j, y_pred in enumerate(model.staged_predict(X_test)):
+        test_errors.append(model.loss_(y_test, y_pred))
+        mse_losses.append(mean_squared_error(y_test, y_pred))
+
+
+    return alpha, k, test_errors, mse_losses
 
 def get_route_metrics(route_short_name, stop_name, direction):
     '''This is a function to process user input
