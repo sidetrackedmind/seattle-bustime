@@ -8,21 +8,21 @@ from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
 
-def get_route_params(route_dir, param_type="tree_depth"):
+def get_best_route_params(route_dir):
+
+
+
+def get_route_params(route_dir):
     '''This is a function to process user input into the model format
     INPUT
     -------
     route_dir - route and direction unique id
-    param_type = you can grid search for either "tree_depth" or "alphas"
 
 
     OUTPUT
     -------
-    fit_model,
-    predictions,
-    y_test,
-    error**(1/2),
-    all_columns_str
+    tree_params
+    alpha_params
     '''
 
     db_name = os.environ["RDS_NAME"]
@@ -67,14 +67,12 @@ def get_route_params(route_dir, param_type="tree_depth"):
 
     #change CV params as necessary
     n_folds = 6
-    if param_type == "tree_depth":
-        tree_depths = [3, 5, 7]
-        params = make_tree_params(tree_depths, n_folds, X, y)
-    if param_type == "alphas":
-        alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
-        params = make_alpha_params(alphas, n_folds, X, y)
+    tree_depths = [3, 5, 7]
+    tree_params = make_tree_params(tree_depths, n_folds, X, y)
+    alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+    alpha_params = make_alpha_params(alphas, n_folds, X, y)
 
-    return params
+    return tree_params, alpha_params
 
 def make_tree_params(tree_depths, n_folds, X, y):
     """
@@ -192,6 +190,58 @@ def crossval_one_alpha(params):
 
 
     return alpha, k, test_errors, mse_losses
+
+def find_best_depth(n_estimators, k_folds, tree_depths):
+    '''
+    INPUT
+    -------
+    n_estimators = number of estimators choosen
+    k_folds = number of cv k-folds
+    tree_depths = list of tree depths
+
+    OUTPUT
+    -------
+    optimal tree depth value
+    '''
+    n_estimators = n_estimators
+    k_folds = k_folds
+    tree_depths = tree_depths
+    n_trees = len(tree_depths)
+    k_error_list = []
+    for tree_idx in range(n_trees):
+        error_arr = np.zeros(n_estimators)
+        for k in range(k_folds):
+            idx = k + (k_folds*tree_idx)
+            error_arr += np.array(result[idx][3])
+        k_error_list.append(min(error_arr/k_folds))
+    k_error_arr = np.array(k_error_list)
+    return tree_depths[np.argmin(k_error_arr)]
+
+def find_best_alpha(n_estimators, k_folds, alphas):
+    '''
+    INPUT
+    -------
+    n_estimators = number of estimators choosen
+    k_folds = number of cv k-folds
+    alphas = list of alphas
+
+    OUTPUT
+    -------
+    optimal alpha value
+    '''
+    n_estimators = n_estimators
+    k_folds = k_folds
+    alpha_list = alphas
+    n_alphas = len(alpha_list)
+    k_error_list = []
+    for alpha_idx in range(n_alphas):
+        error_arr = np.zeros(n_estimators)
+        for k in range(k_folds):
+            idx = k + (k_folds*alpha_idx)
+            error_arr += np.array(result[idx][3])
+        k_error_list.append(min(error_arr/k_folds))
+    k_error_arr = np.array(k_error_list)
+    return alpha_list[np.argmin(k_error_arr)]
 
 def get_route_metrics(route_short_name, stop_name, direction):
     '''This is a function to process user input
