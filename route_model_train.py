@@ -118,7 +118,6 @@ def crossval_one(params):
     (td, k, X_train, y_train, X_test, y_test) = params
     test_errors = []
     mse_losses = []
-    aucs = []
     model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
                                    max_depth=td, learning_rate=0.025,
                                    subsample=0.5,
@@ -128,11 +127,10 @@ def crossval_one(params):
     for j, y_pred in enumerate(model.staged_predict(X_test)):
         test_errors.append(model.loss_(y_test, y_pred))
         mse_losses.append(mean_squared_error(y_test, y_pred))
-        aucs.append(roc_auc_score(y_test, y_pred))
 
-    write_cross_val_results(td, k, test_errors, mse_losses, aucs)
+    write_cross_val_results(td, k, test_errors, mse_losses)
 
-    return td, k, test_errors, mse_losses, aucs, model
+    return td, k, test_errors, mse_losses, model
 
 
 def get_route_metrics(route_short_name, stop_name, direction):
@@ -213,7 +211,7 @@ def column_list_to_string(list):
             column_str += ","+str(col)
     return column_str
 
-def write_cross_val_results(td, k, test_errors, mse_losses, aucs):
+def write_cross_val_results(td, k, test_errors, mse_losses):
     '''
     INPUT
     ------
@@ -221,16 +219,16 @@ def write_cross_val_results(td, k, test_errors, mse_losses, aucs):
     td - tree depth
     k - kfold number idx
     test_errors - errors from gradient boosted regressor
+    mse_losses - mean_squared_error losses
+    auc - area under cu
 
 
     '''
     file_path = './cv_tracker.txt'
     with open(file_path, "a") as f:
-        f.write(td,", ",k)
+        f.write("tree depth = "td,", kfold index = ",k)
         f.write("\n")
         f.write(test_errors)
         f.write("\n")
         f.write(mse_losses)
-        f.write("\n")
-        f.write(aucs)
         f.write("\n")
