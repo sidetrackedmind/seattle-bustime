@@ -41,7 +41,7 @@ def get_best_route_params(route_dir):
 
     print("getting tree and alpha params")
     tree_params, alpha_params = get_route_params(route_dir, tree_depths,
-                                        alphas, n_folds, n_estimators)
+                                        alphas, k_folds, n_estimators)
 
     print("cross validate for max depth")
     pool1 = multiprocessing.Pool(12)
@@ -59,16 +59,14 @@ def get_best_route_params(route_dir):
 
 
     print("find best depth")
-    best_depth = find_best_depth(cv_depth_result, n_estimators, k_folds,
+    best_depth = find_best_depth(cv_depth_result, n_estimators, n_folds,
                                                             tree_depths)
 
     print("find best alpha")
-
-    best_alpha = find_best_alpha(cv_alpha_result, n_estimators, k_folds,
+    best_alpha = find_best_alpha(cv_alpha_result, n_estimators, n_folds,
                                                                 alphas)
 
     print("update cv database")
-
     update_cv_database(conn, best_alpha, best_depth, route_dir)
 
     #during testing phase return some params to quality check
@@ -260,7 +258,7 @@ def crossval_one_alpha(params):
 
     return alpha, k, test_errors, mse_losses
 
-def find_best_depth(cv_depth_result, n_estimators, k_folds, tree_depths):
+def find_best_depth(cv_depth_result, n_estimators, n_folds, tree_depths):
     '''
     INPUT
     -------
@@ -273,7 +271,7 @@ def find_best_depth(cv_depth_result, n_estimators, k_folds, tree_depths):
     optimal tree depth value
     '''
     n_estimators = n_estimators
-    k_folds = k_folds
+    k_folds = n_folds
     tree_depths = tree_depths
     n_trees = len(tree_depths)
     k_error_list = []
@@ -288,7 +286,7 @@ def find_best_depth(cv_depth_result, n_estimators, k_folds, tree_depths):
     best_depth = tree_depths[np.argmin(k_error_arr)]
     return best_depth
 
-def find_best_alpha(cv_alpha_result, n_estimators, k_folds, alphas):
+def find_best_alpha(cv_alpha_result, n_estimators, n_folds, alphas):
     '''
     INPUT
     -------
@@ -301,7 +299,7 @@ def find_best_alpha(cv_alpha_result, n_estimators, k_folds, alphas):
     optimal alpha value
     '''
     n_estimators = n_estimators
-    k_folds = k_folds
+    k_folds = n_folds
     alpha_list = alphas
     n_alphas = len(alpha_list)
     k_error_list = []
