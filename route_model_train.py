@@ -65,16 +65,18 @@ def get_route_params(route_dir):
     X = result_dummies.values
 
     #change CV params as necessary
-    tree_depths = [3, 5, 7]
+    #tree_depths = [3, 5, 7]
+    tree_depths = None
+    alphas = [0.85, 0.9, 0.95]
     n_folds = 6
 
-    params = make_params(tree_depths, n_folds, X, y)
+    params = make_params(tree_depths, alphas, n_folds, X, y)
 
 
 
     return params
 
-def make_params(tree_depths, n_folds, X, y):
+def make_params(tree_depths=None, alphas=None, n_folds, X, y):
     """
     Create a list of parameters to input into crossval_one for parallelization.
 
@@ -90,14 +92,24 @@ def make_params(tree_depths, n_folds, X, y):
     params : A list containing tuples (td, k, X_train, y_train, X_test, y_test)
             The length of params will be len(tree_depths) * n_folds
     """
-    params = []
-    kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
-    for td in tree_depths:
-        for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
 
-            X_train, y_train = X[train_idxs, :], y[train_idxs]
-            X_test, y_test = X[test_idxs, :], y[test_idxs]
-            params.append((td, k, X_train, y_train, X_test, y_test))
+    params = []
+    if tree_depths != None:
+        kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
+        for td in tree_depths:
+            for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
+
+                X_train, y_train = X[train_idxs, :], y[train_idxs]
+                X_test, y_test = X[test_idxs, :], y[test_idxs]
+                params.append((td, k, X_train, y_train, X_test, y_test))
+    if alpha != None:
+        kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
+        for alpha in alphas:
+            for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
+
+                X_train, y_train = X[train_idxs, :], y[train_idxs]
+                X_test, y_test = X[test_idxs, :], y[test_idxs]
+                params.append((alpha, k, X_train, y_train, X_test, y_test))
     return params
 
 def crossval_one(params):
@@ -115,12 +127,12 @@ def crossval_one(params):
     test_scores : A list, the model loss at each stage
     model : The model trained on the given parameters
     """
-    (td, k, X_train, y_train, X_test, y_test) = params
+    (alpha, k, X_train, y_train, X_test, y_test) = params
     test_errors = []
     mse_losses = []
     model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
-                                   max_depth=td, learning_rate=0.025,
-                                   subsample=0.5,
+                                   max_depth=5, learning_rate=0.025,
+                                   subsample=0.5, alpha=alpha,
                                    random_state=128)
     model.fit(X_train, y_train)
 
@@ -129,7 +141,7 @@ def crossval_one(params):
         mse_losses.append(mean_squared_error(y_test, y_pred))
 
 
-    return td, k, test_errors, mse_losses, model
+    return alpha, k, test_errors, mse_losses, model
 
 
 def get_route_metrics(route_short_name, stop_name, direction):
