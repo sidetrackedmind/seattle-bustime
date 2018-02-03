@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split, Kfold
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
