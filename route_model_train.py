@@ -40,7 +40,7 @@ def get_best_route_params(route_dir):
     n_estimators = 3000
 
     tree_params, alpha_params = get_route_params(route_dir, tree_depths,
-                                                alphas, n_folds)
+                                        alphas, n_folds, n_estimators)
 
     pool = multiprocessing.Pool(12)
 
