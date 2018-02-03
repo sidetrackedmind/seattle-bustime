@@ -48,11 +48,15 @@ def get_best_route_params(route_dir):
 
     cv_depth_result = pool1.map(crossval_one_depth, tree_params)
 
+    pool1.close()
+
     print("cross validate for alpha")
 
     pool2 = multiprocessing.Pool(12)
 
     cv_alpha_result = pool2.map(crossval_one_alpha, tree_params)
+
+    pool2.close()
 
     print("find best depth")
 
