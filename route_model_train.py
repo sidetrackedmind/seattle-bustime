@@ -71,7 +71,7 @@ def get_route_params(route_dir, param_type="tree_depth"):
         tree_depths = [3, 5, 7]
         params = make_tree_params(tree_depths, n_folds, X, y)
     if param_type == "alphas":
-        alphas = [0.65, 0.7, 0.75, 0.8, 0.85]
+        alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
         params = make_alpha_params(alphas, n_folds, X, y)
 
     return params
