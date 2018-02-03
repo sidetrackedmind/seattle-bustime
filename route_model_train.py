@@ -74,61 +74,64 @@ def get_route_params(route_dir):
     return params
 
 def make_params(tree_depths, n_folds, X, y):
-   """
-   Create a list of parameters to input into crossval_one for parallelization.
+    """
+    Create a list of parameters to input into crossval_one for parallelization.
 
-   Input
-   ------
-   tree_depths : List of tree_depths to gridsearch across
-   n_folds : The number of folds to use in K-fold CV
-   X : Full dataset, a numpy array
-   y : Labels, a numpy array
+    Input
+    ------
+    tree_depths : List of tree_depths to gridsearch across
+    n_folds : The number of folds to use in K-fold CV
+    X : Full dataset, a numpy array
+    y : Labels, a numpy array
 
-   Output
-   ------
-   params : A list containing tuples (td, k, X_train, y_train, X_test, y_test)
+    Output
+    ------
+    params : A list containing tuples (td, k, X_train, y_train, X_test, y_test)
             The length of params will be len(tree_depths) * n_folds
-   """
-   params = []
-   kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
-   for td in tree_depths:
-       for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
+    """
+    params = []
+    kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
+    for td in tree_depths:
+        for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
 
-           X_train, y_train = X[train_idxs, :], y[train_idxs]
-           X_test, y_test = X[test_idxs, :], y[test_idxs]
-           params.append((td, k, X_train, y_train, X_test, y_test))
-   return params
+            X_train, y_train = X[train_idxs, :], y[train_idxs]
+            X_test, y_test = X[test_idxs, :], y[test_idxs]
+            params.append((td, k, X_train, y_train, X_test, y_test))
+    return params
 
 def crossval_one(params):
-   """
-   Perform one fold of cross-validation with one tree depth
+    """
+    Perform one fold of cross-validation with one tree depth
 
-   Input
-   ------
-   params : The output of make_params
+    Input
+    ------
+    params : The output of make_params
 
-   Output
-   ------
-   td : The tree depth at the current stage
-   k : The current cross-validation fold (can be used to map back to X and y from params)
-   test_scores : A list, the model loss at each stage
-   model : The model trained on the given parameters
-   """
-   (td, k, X_train, y_train, X_test, y_test) = params
-   test_errors = []
-   log_losses = []
-   aucs = []
-   model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
+    Output
+    ------
+    td : The tree depth at the current stage
+    k : The current cross-validation fold (can be used to map back to X and y from params)
+    test_scores : A list, the model loss at each stage
+    model : The model trained on the given parameters
+    """
+    (td, k, X_train, y_train, X_test, y_test) = params
+    test_errors = []
+    mse_losses = []
+    aucs = []
+    model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
                                    max_depth=td, learning_rate=0.025,
                                    subsample=0.5,
                                    random_state=128)
-   model.fit(X_train, y_train)
+    model.fit(X_train, y_train)
 
-   for j, y_pred in enumerate(model.staged_predict(X_test)):
-       test_errors.append(model.loss_(y_test, y_pred))
-       log_losses.append(log_loss(y_test, y_pred))
-       aucs.append(roc_auc_score(y_test, y_pred))
-   return td, k, test_errors, log_losses, aucs, model
+    for j, y_pred in enumerate(model.staged_predict(X_test)):
+        test_errors.append(model.loss_(y_test, y_pred))
+        mse_losses.append(mean_squared_error(y_test, y_pred))
+        aucs.append(roc_auc_score(y_test, y_pred))
+
+    write_cross_val_results(td, k, test_errors, log_losses, aucs)
+
+    return td, k, test_errors, log_losses, aucs, model
 
 
 def get_route_metrics(route_short_name, stop_name, direction):
@@ -208,3 +211,15 @@ def column_list_to_string(list):
         else:
             column_str += ","+str(col)
     return column_str
+
+def write_cross_val_results(td, k, test_errors, log_losses, aucs):
+    file_path = './cv_tracker.txt'
+    with open(file_path, "a") as f:
+        f.write(td,", ",k)
+        f.write("\n")
+        f.write(test_errors)
+        f.write("\n")
+        f.write(log_losses)
+        f.write("\n")
+        f.write(aucs)
+        f.write("\n")
