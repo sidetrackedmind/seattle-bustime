@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, Kfold
 from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
@@ -90,10 +90,9 @@ def make_params(tree_depths, n_folds, X, y):
             The length of params will be len(tree_depths) * n_folds
    """
    params = []
+   kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
    for td in tree_depths:
-       for k, (train_idxs, test_idxs) in enumerate(KFold(n_folds=n_folds,
-                                                            shuffle=True,
-                                                            random_state=1)):
+       for k, (train_idxs, test_idxs) in enumerate(kf.split(X)):
 
            X_train, y_train = X[train_idxs, :], y[train_idxs]
            X_test, y_test = X[test_idxs, :], y[test_idxs]
