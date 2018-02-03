@@ -37,7 +37,7 @@ def get_best_route_params(route_dir):
     n_folds = 6
     tree_depths = [3, 5, 7]
     alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
-    n_estimators = 3000
+    n_estimators = 1500
 
     print("getting tree and alpha params")
     tree_params, alpha_params = get_route_params(route_dir, tree_depths,
@@ -45,21 +45,20 @@ def get_best_route_params(route_dir):
 
     print("cross validate for max depth")
     pool1 = multiprocessing.Pool(12)
-
     cv_depth_result = pool1.map(crossval_one_depth, tree_params)
 
     pool1.close()
 
+
+
     print("cross validate for alpha")
-
     pool2 = multiprocessing.Pool(12)
-
-    cv_alpha_result = pool2.map(crossval_one_alpha, tree_params)
+    cv_alpha_result = pool2.map(crossval_one_alpha, alpha_params)
 
     pool2.close()
 
-    print("find best depth")
 
+    print("find best depth")
     best_depth = find_best_depth(cv_depth_result, n_estimators, k_folds,
                                                             tree_depths)
 
@@ -74,7 +73,6 @@ def get_best_route_params(route_dir):
 
     #during testing phase return some params to quality check
     return cv_depth_result, cv_alpha_result, best_depth, best_alpha
-
 
 
 def get_route_params(route_dir, tree_depths, alphas, n_folds,
