@@ -41,7 +41,7 @@ def get_best_route_params(route_dir):
 
     print("getting tree and alpha params")
     tree_params, alpha_params = get_route_params(route_dir, tree_depths,
-                                        alphas, k_folds, n_estimators)
+                                        alphas, n_folds, n_estimators)
 
     print("cross validate for max depth")
     pool1 = multiprocessing.Pool(12)
@@ -404,9 +404,9 @@ def update_cv_database(conn, best_alpha, best_depth, route_dir):
     conn.commit()
 
 def plot_tree_depth_cv(ax, cv_depth_result, n_estimators,
-                                            k_folds, tree_depths):
+                                            n_folds, tree_depths):
     n_estimators = n_estimators
-    k_folds = k_folds
+    k_folds = n_folds
     tree_depths = tree_depths
     n_trees = len(tree_depths)
     k_error_list = []
@@ -424,7 +424,7 @@ def plot_tree_depth_cv(ax, cv_depth_result, n_estimators,
     ax.set_xlabel("n_estimators", fontsize=15)
     ax.set_ylabel("Test Error",  fontsize=15)
 
-def plot_alpha_cv(ax, cv_alpha_result, n_estimators, k_folds, alphas):
+def plot_alpha_cv(ax, cv_alpha_result, n_estimators, n_folds, alphas):
     alpha_list = alphas
     n_alphas = len(alpha_list)
     k_error_list = []
