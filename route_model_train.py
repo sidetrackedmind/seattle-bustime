@@ -220,13 +220,16 @@ def write_cross_val_results(td, k, test_errors, mse_losses):
     k - kfold number idx
     test_errors - errors from gradient boosted regressor
     mse_losses - mean_squared_error losses
-    auc - area under cu
 
-
+    OUTPUT
+    -------
+    write results to file to make sure they're not lost if EC2 crashes
+    *come back and make this more graceful*
     '''
     file_path = './cv_tracker.txt'
     with open(file_path, "a") as f:
-        f.write("tree depth = ",td," , kfold index = ",k)
+        header = "tree depth = ",td," , kfold index = ",k
+        f.write(header)
         f.write("\n")
         f.write(test_errors)
         f.write("\n")
