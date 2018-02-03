@@ -46,23 +46,14 @@
 		success: function(result){
     	$("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
         $("#confidence_int").html("90% confident the bus will arrive between " + result.conf_interval_10.toPrecision(3) + " and " + result.conf_interval_90.toPrecision(3) + " of the scheduled time");
-        var container_width = ($(window).width())/2
+
         var num_line_scale = 30
         var mid_container = container_width/2
         var left_margin = container_width/10
         var right_margin = container_width/10
         var conf_width = (result.conf_interval_90 - result.conf_interval_10)
         var bar_width = (conf_width)*(container_width/num_line_scale)
-        var svgContainer = d3.select("svg")
-        var rectangle = svgContainer.append("rect")
-                                      .attr("x", (conf_width/num_line_scale)*mid_container )
-                                      .attr("y", 350/2)
-                                      .attr("width", bar_width)
-                                      .attr("height", 20)
-                                      .style("fill", 'black')
-            rectangle.transition()
-                    .duration(30)
-                    .delay(5)
+
 
 
 
@@ -71,6 +62,21 @@
 	  });
 	}
   </script>
+  <script>
+  var container_width = ($(window).width())/2
+  var scale = d3.scale.linear()
+                      .domain([-20,20])
+                      .range([0,container_width])
+  var xAxis = d3.axisBottom(scale)
+  var svgContainer = d3.select("svg")
+  var rectangle = svgContainer.append("rect")
+                                .attr("x", -10)
+                                .attr("y", 350/2)
+                                .attr("width", 20)
+                                .attr("height", 20)
+                                .style("fill", 'black');
+  </script>
+
   <script>
       clearCanvas = function(){
           var c = document.getElementById("myCanvas");
