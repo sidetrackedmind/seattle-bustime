@@ -8,7 +8,7 @@ from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
 
-def get_route_params(route_dir, param_type="tree_depths"):
+def get_route_params(route_dir, param_type="tree_depth"):
     '''This is a function to process user input into the model format
     INPUT
     -------
@@ -67,10 +67,10 @@ def get_route_params(route_dir, param_type="tree_depths"):
 
     #change CV params as necessary
     n_folds = 6
-    if param_type == "tree_depths"
+    if param_type == "tree_depth":
         tree_depths = [3, 5, 7]
         params = make_tree_params(tree_depths, n_folds, X, y)
-    if param_type == "alphas"
+    if param_type == "alphas":
         alphas = [0.85, 0.9, 0.95]
         params = make_alpha_params(alphas, n_folds, X, y)
 
