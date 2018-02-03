@@ -7,13 +7,62 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
+import multiprocessing
 
 def get_best_route_params(route_dir):
-    pass
+    '''
+    INPUT
+    ------
+    route_dir - unique route direction id
+
+    OUTPUT
+    -------
+    updated cv database with optimal depth and alpha for the route_dir
+
+    '''
+
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+
+    conn = psycopg2.connect(dbname=db_name,
+                            user=user,
+                            password=key,
+                            host=host,
+                            port=port)
+
+    #you can always change these grid paramters
+    n_folds = 6
+    tree_depths = [3, 5, 7]
+    alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+    n_estimators = 3000
+
+    tree_params, alpha_params = get_route_params(route_dir, tree_depths,
+                                                alphas, n_folds)
+
+    pool = multiprocessing.Pool(12)
+
+    cv_depth_result = pool.map(crossval_one_depth, tree_params)
+
+    cv_alpha_result = pool.map(crossval_one_alpha, tree_params)
+
+    best_depth = find_best_depth(cv_depth_result, n_estimators, k_folds,
+                                                            tree_depths)
+
+    best_alpha = find_best_alpha(cv_alpha_result, n_estimators, k_folds,
+                                                                alphas)
+
+    update_cv_database(conn, best_alpha, best_depth, route_dir)
+
+    #during testing phase return some params to quality check
+    return cv_depth_result, cv_alpha_result, best_depth, best_alpha
 
 
 
-def get_route_params(route_dir):
+def get_route_params(route_dir, tree_depths, alphas, n_folds,
+                                                        n_estimators):
     '''This is a function to process user input into the model format
     INPUT
     -------
@@ -67,15 +116,18 @@ def get_route_params(route_dir):
     X = result_dummies.values
 
     #change CV params as necessary
-    n_folds = 6
-    tree_depths = [3, 5, 7]
-    tree_params = make_tree_params(tree_depths, n_folds, X, y)
-    alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
-    alpha_params = make_alpha_params(alphas, n_folds, X, y)
+
+    tree_params = make_tree_params(n_estimators, tree_depths, n_folds,
+                                                                X, y)
+
+    alpha_params = make_alpha_params(n_estimators, alphas, n_folds, X, y)
+
+    cur.close()
+    conn.close()
 
     return tree_params, alpha_params
 
-def make_tree_params(tree_depths, n_folds, X, y):
+def make_tree_params(n_estimators, tree_depths, n_folds, X, y):
     """
     Create a list of parameters to input into crossval_one for parallelization.
 
@@ -91,7 +143,7 @@ def make_tree_params(tree_depths, n_folds, X, y):
     params : A list containing tuples (td, k, X_train, y_train, X_test, y_test)
             The length of params will be len(tree_depths) * n_folds
     """
-
+    n_estimators = n_estimators
     params = []
     kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
     for td in tree_depths:
@@ -99,11 +151,11 @@ def make_tree_params(tree_depths, n_folds, X, y):
 
             X_train, y_train = X[train_idxs, :], y[train_idxs]
             X_test, y_test = X[test_idxs, :], y[test_idxs]
-            params.append((td, k, X_train, y_train, X_test, y_test))
+            params.append((n_estimators, td, k, X_train, y_train, X_test, y_test))
 
     return params
 
-def make_alpha_params(alphas, n_folds, X, y):
+def make_alpha_params(n_estimators, alphas, n_folds, X, y):
     """
     Create a list of parameters to input into crossval_one for parallelization.
 
@@ -119,7 +171,7 @@ def make_alpha_params(alphas, n_folds, X, y):
     params : A list containing tuples (alpha, k, X_train, y_train, X_test, y_test)
             The length of params will be len(alphas) * n_folds
     """
-
+    n_estimators = n_estimators
     params = []
     kf = KFold(n_splits=n_folds, shuffle=True, random_state=1)
     for alpha in alphas:
@@ -127,7 +179,7 @@ def make_alpha_params(alphas, n_folds, X, y):
 
             X_train, y_train = X[train_idxs, :], y[train_idxs]
             X_test, y_test = X[test_idxs, :], y[test_idxs]
-            params.append((alpha, k, X_train, y_train, X_test, y_test))
+            params.append((n_estimators, alpha, k, X_train, y_train, X_test, y_test))
     return params
 
 def crossval_one_depth(params):
@@ -145,10 +197,11 @@ def crossval_one_depth(params):
     test_scores : A list, the model loss at each stage
     model : The model trained on the given parameters
     """
-    (td, k, X_train, y_train, X_test, y_test) = params
+    (n_estimators, td, k, X_train, y_train, X_test, y_test) = params
     test_errors = []
     mse_losses = []
-    model = GradientBoostingRegressor(loss='quantile', n_estimators=3000,
+    model = GradientBoostingRegressor(loss='quantile',
+                                    n_estimators=n_estimators,
                                    max_depth=td, learning_rate=0.015,
                                    subsample=0.5,
                                    random_state=128)
@@ -176,10 +229,11 @@ def crossval_one_alpha(params):
     test_scores : A list, the model loss at each stage
     model : The model trained on the given parameters
     """
-    (alpha, k, X_train, y_train, X_test, y_test) = params
+    (n_estimators, alpha, k, X_train, y_train, X_test, y_test) = params
     test_errors = []
     mse_losses = []
-    model = GradientBoostingRegressor(loss='quantile', n_estimators=3000,
+    model = GradientBoostingRegressor(loss='quantile',
+                                    n_estimators=n_estimators,
                                    max_depth=5, learning_rate=0.015,
                                    subsample=0.5, alpha=alpha,
                                    random_state=128)
@@ -192,7 +246,7 @@ def crossval_one_alpha(params):
 
     return alpha, k, test_errors, mse_losses
 
-def find_best_depth(n_estimators, k_folds, tree_depths):
+def find_best_depth(cv_depth_result, n_estimators, k_folds, tree_depths):
     '''
     INPUT
     -------
@@ -213,12 +267,14 @@ def find_best_depth(n_estimators, k_folds, tree_depths):
         error_arr = np.zeros(n_estimators)
         for k in range(k_folds):
             idx = k + (k_folds*tree_idx)
-            error_arr += np.array(result[idx][3])
+            #this is picking best test_error change to 3 if you want mse
+            error_arr += np.array(cv_depth_result[idx][2])
         k_error_list.append(min(error_arr/k_folds))
     k_error_arr = np.array(k_error_list)
-    return tree_depths[np.argmin(k_error_arr)]
+    best_depth = tree_depths[np.argmin(k_error_arr)]
+    return best_depth
 
-def find_best_alpha(n_estimators, k_folds, alphas):
+def find_best_alpha(cv_alpha_result, n_estimators, k_folds, alphas):
     '''
     INPUT
     -------
@@ -239,10 +295,12 @@ def find_best_alpha(n_estimators, k_folds, alphas):
         error_arr = np.zeros(n_estimators)
         for k in range(k_folds):
             idx = k + (k_folds*alpha_idx)
-            error_arr += np.array(result[idx][3])
+            #this is picking best test_error change to 3 if you want mse
+            error_arr += np.array(cv_alpha_result[idx][2])
         k_error_list.append(min(error_arr/k_folds))
     k_error_arr = np.array(k_error_list)
-    return alpha_list[np.argmin(k_error_arr)]
+    best_alpha = alpha_list[np.argmin(k_error_arr)]
+    return best_alpha
 
 def get_route_metrics(route_short_name, stop_name, direction):
     '''This is a function to process user input
@@ -321,3 +379,54 @@ def column_list_to_string(list):
         else:
             column_str += ","+str(col)
     return column_str
+
+def update_cv_database(conn, best_alpha, best_depth, route_dir):
+    cur = conn.cursor()
+
+    cur.execute("UPDATE model_params "
+                "SET best_alpha = (%s),"
+                    "best_depth = (%s),"
+                    "c_validated = 'true' "
+                    "WHERE route_dir  = (%s)",
+                    (best_alpha, best_depth, route_dir))
+    conn.commit()
+
+def plot_tree_depth_cv(ax, cv_depth_result, n_estimators,
+                                            k_folds, tree_depths):
+    n_estimators = n_estimators
+    k_folds = k_folds
+    tree_depths = tree_depths
+    n_trees = len(tree_depths)
+    k_error_list = []
+    x = np.arange(1,n_estimators+1,1)
+    for tree_idx in range(n_trees):
+        error_arr = np.zeros(n_estimators)
+        for k in range(k_folds):
+            idx = k + (k_folds*tree_idx)
+            error_arr += np.array(cv_depth_result[idx][2])
+        k_error_list.append(min(error_arr/k_folds))
+        ax.plot(x, (error_arr/k_folds), label="tree depth = {}".format(tree_depths[tree_idx]))
+    k_error_arr = np.array(k_error_list)
+
+    ax.legend(fontsize=15)
+    ax.set_xlabel("n_estimators", fontsize=15)
+    ax.set_ylabel("Test Error",  fontsize=15)
+
+def plot_alpha_cv(ax, cv_alpha_result, n_estimators, k_folds, alphas):
+    alpha_list = alphas
+    n_alphas = len(alpha_list)
+    k_error_list = []
+    x = np.arange(1,n_estimators+1,1)
+    for alpha_idx in range(n_alphas):
+        error_arr = np.zeros(n_estimators)
+        for k in range(k_folds):
+            idx = k + (k_folds*alpha_idx)
+            error_arr += np.array(cv_alpha_result[idx][2])
+        k_error_list.append(min(error_arr/k_folds))
+        ax.plot(x, (error_arr/k_folds),
+                    label="alpha = {}".format(alpha_list[alpha_idx]))
+    k_error_arr = np.array(k_error_list)
+
+    ax.legend(fontsize=15)
+    ax.set_xlabel("n_estimators", fontsize=15)
+    ax.set_ylabel("Test Error",  fontsize=15)
