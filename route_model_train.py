@@ -128,7 +128,6 @@ def crossval_one(params):
         test_errors.append(model.loss_(y_test, y_pred))
         mse_losses.append(mean_squared_error(y_test, y_pred))
 
-    write_cross_val_results(td, k, test_errors, mse_losses)
 
     return td, k, test_errors, mse_losses, model
 
@@ -210,28 +209,3 @@ def column_list_to_string(list):
         else:
             column_str += ","+str(col)
     return column_str
-
-def write_cross_val_results(td, k, test_errors, mse_losses):
-    '''
-    INPUT
-    ------
-    values from cross validation
-    td - tree depth
-    k - kfold number idx
-    test_errors - errors from gradient boosted regressor
-    mse_losses - mean_squared_error losses
-
-    OUTPUT
-    -------
-    write results to file to make sure they're not lost if EC2 crashes
-    *come back and make this more graceful*
-    '''
-    file_path = './cv_tracker.txt'
-    with open(file_path, "a") as f:
-        header = "tree depth = "+str(td)+" , kfold index = "+str(k)
-        f.write(header)
-        f.write("\n")
-        f.write(test_errors)
-        f.write("\n")
-        f.write(mse_losses)
-        f.write("\n")
