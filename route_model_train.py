@@ -228,7 +228,7 @@ def write_cross_val_results(td, k, test_errors, mse_losses):
     '''
     file_path = './cv_tracker.txt'
     with open(file_path, "a") as f:
-        header = "tree depth = ",td," , kfold index = ",k
+        header = "tree depth = "+str(td)+" , kfold index = "+str(k)
         f.write(header)
         f.write("\n")
         f.write(test_errors)
