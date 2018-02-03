@@ -182,7 +182,7 @@ def crossval_one_alpha(params):
     mse_losses = []
     model = GradientBoostingRegressor(loss='quantile', n_estimators=1000,
                                    max_depth=5, learning_rate=0.025,
-                                   subsample=0.5, alpha=alpha
+                                   subsample=0.5, alpha=alpha,
                                    random_state=128)
     model.fit(X_train, y_train)
 
