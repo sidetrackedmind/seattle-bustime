@@ -20,6 +20,13 @@ def train_all_routes():
     updated pickle model in S3
     updated train column in RDS "models" table
     '''
+
+    route_dir_list = get_route_dir_list()
+
+    pool = multiprocessing.Pool(14)
+    pool.map(train_one_route, route_dir_list)
+
+def train_one_route(route_dir):
     db_name = os.environ["RDS_NAME"]
     user = os.environ["RDS_USER"]
     key = os.environ["RDS_KEY"]
@@ -31,82 +38,71 @@ def train_all_routes():
                             password=key,
                             host=host,
                             port=port)
-    cur = conn.cursor()
-
-    call_status, route_dir = find_next_route_dir(conn)
 
     #mark route as "in progress"
     route_in_progress(conn, route_dir)
 
     best_alpha, best_depth = get_params_from_db(conn, route_dir)
 
-    if call_status == "Done":
-        pass
-    else:
-        conn = psycopg2.connect(dbname=db_name,
-                                user=user,
-                                password=key,
-                                host=host,
-                                port=port)
-        cur = conn.cursor()
-        query = '''
-                select distinct(route_id), direction_id
-                from route_info
-                where route_dir = '{}'
-                '''.format(route_dir)
+    cur = conn.cursor()
 
-        print('finding {}'.format(route_dir))
+    query = '''
+            select distinct(route_id), direction_id
+            from route_info
+            where route_dir = '{}'
+            '''.format(route_dir)
 
-        cur.execute(query)
-        query_list = cur.fetchall()
-        route_id = query_list[0][0]
-        direction = query_list[0][1]
-        pickle_path = build_filename(route_id, direction)
+    print('finding {}'.format(route_dir))
 
-        model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
+    cur.execute(query)
+    query_list = cur.fetchall()
+    route_id = query_list[0][0]
+    direction = query_list[0][1]
+    pickle_path = build_filename(route_id, direction)
 
-        select_string = column_list_to_string(model_col_list)
+    model_col_list = ['route_dir_stop','stop_sequence','month', 'day', 'hour','dow','delay']
 
-        query = '''
-                select {}
-                from updates
-                where route_id = {}
-                and direction_id = {}
-                '''.format(select_string, route_id, direction)
+    select_string = column_list_to_string(model_col_list)
 
-        print('getting historical route information for {}'.format(route_dir))
-        cur.execute(query)
-        query_list = cur.fetchall()
-        result = pd.DataFrame(query_list, columns=model_col_list)
-        y = (result.iloc[:,-1].values)/60
-        result = result.drop('delay', axis=1)
-        dummy_col = ['route_dir_stop','month', 'day', 'hour','dow']
-        result_dummies = pd.get_dummies(result,columns=dummy_col)
-        all_column_list = list(result_dummies.columns)
-        all_columns_str = column_list_to_string(all_column_list)
-        X = result_dummies.values
+    query = '''
+            select {}
+            from updates
+            where route_id = {}
+            and direction_id = {}
+            '''.format(select_string, route_id, direction)
 
-        gbr = GradientBoostingRegressor(loss='quantile',
-                                        n_estimators=1000,
-                                        learning_rate=0.015,
-                                        max_depth=best_depth,
-                                        subsample=0.5,
-                                        alpha=best_alpha,
-                                        random_state=128)
+    print('getting historical route information for {}'.format(route_dir))
+    cur.execute(query)
+    query_list = cur.fetchall()
+    result = pd.DataFrame(query_list, columns=model_col_list)
+    y = (result.iloc[:,-1].values)/60
+    result = result.drop('delay', axis=1)
+    dummy_col = ['route_dir_stop','month', 'day', 'hour','dow']
+    result_dummies = pd.get_dummies(result,columns=dummy_col)
+    all_column_list = list(result_dummies.columns)
+    all_columns_str = column_list_to_string(all_column_list)
+    X = result_dummies.values
 
-        print('starting model fit for {}_{}'.format(route_id, direction))
-        fit_model = gbr.fit(X, y)
-        print('model fit complete for {}_{}'.format(route_id, direction))
-        put_pickle_model(fit_model, pickle_path)
+    gbr = GradientBoostingRegressor(loss='quantile',
+                                    n_estimators=1000,
+                                    learning_rate=0.015,
+                                    max_depth=best_depth,
+                                    subsample=0.5,
+                                    alpha=best_alpha,
+                                    random_state=128)
 
-        update_model_database(conn, all_columns_str, pickle_path, route_dir)
-        print('database updated for {}_{}'.format(route_id, direction))
-        mark_as_finished(conn, route_dir)
+    print('starting model fit for {}_{}'.format(route_id, direction))
+    fit_model = gbr.fit(X, y)
+    print('model fit complete for {}_{}'.format(route_id, direction))
+    put_pickle_model(fit_model, pickle_path)
 
-        cur.close()
-        conn.close()
+    update_model_database(conn, all_columns_str, pickle_path, route_dir)
+    print('database updated for {}_{}'.format(route_id, direction))
+    mark_as_finished(conn, route_dir)
 
-        return call_status
+    cur.close()
+    conn.close()
+
     return call_status
 
 def get_route_dir_list():
@@ -259,5 +255,4 @@ def route_in_progress(conn, route_dir):
 
 
 if __name__ == "__main__":
-    while call_status != "Done":
-        call_status = train_all_routes()
+    train_all_routes()
