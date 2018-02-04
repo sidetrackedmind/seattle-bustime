@@ -85,7 +85,7 @@ def train_one_route(route_dir):
     X = result_dummies.values
 
     gbr = GradientBoostingRegressor(loss='quantile',
-                                    n_estimators=1000,
+                                    n_estimators=3000,
                                     learning_rate=0.015,
                                     max_depth=best_depth,
                                     subsample=0.5,

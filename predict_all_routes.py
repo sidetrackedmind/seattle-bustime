@@ -95,7 +95,8 @@ def predict_one_route_pipeline(route_dir):
 
     query_col_list = ['route_dir_stop','stop_sequence', 'month', 'day',
                     'hour', 'dow', 'delay', 'stop_name', 'stop_lat',
-                    'stop_lon', 'time_pct', 'shape_dist_traveled']
+                    'stop_lon', 'time_pct', 'shape_dist_traveled',
+                    'trip_id', 'vehicle_id']
     select_string = column_list_to_string(query_col_list)
     query = '''
             select {}
@@ -125,6 +126,8 @@ def predict_one_route_pipeline(route_dir):
         stop_lon = stop_updates[9]
         time_pct = stop_updates[10]
         shape_dist_traveled = stop_updates[11]
+        trip_id = stop_updates[12]
+        vehicle_id = stop_updates[13]
 
         if i % 1000 == 0:
             print("completed {} updates".format(i))
@@ -144,8 +147,10 @@ def predict_one_route_pipeline(route_dir):
 
         prediction = fit_model.predict(X_array)[0]
 
-        update_route_df = build_output_df_row(route_dir_stop, route_dir, time_pct,
-                                stop_sequence, shape_dist_traveled, stop_name, stop_lat, stop_lon,
+        update_route_df = build_output_df_row(route_dir_stop, route_dir,
+                                time_pct, stop_sequence, shape_dist_traveled,
+                                trip_id, vehicle_id,
+                                stop_name, stop_lat, stop_lon,
                                 month, day, hour, dow, delay, prediction)
 
         if i == 0:
@@ -161,18 +166,18 @@ def predict_one_route_pipeline(route_dir):
 
 
 def build_output_df_row(route_dir_stop, route_dir, time_pct, stop_sequence,
-                        shape_dist_traveled, stop_name,
-                        stop_lat, stop_lon, month, day, hour, dow,
-                        delay, prediction):
+                        shape_dist_traveled, trip_id, vehicle_id,
+                        stop_name, stop_lat, stop_lon, month, day, hour,
+                        dow, delay, prediction):
 
     output_cols = ['route_dir_stop','route_dir','time_pct','stop_sequence',
-                    'shape_dist_traveled', 'stop_name',
-                    'stop_lat', 'stop_lon','month', 'day', 'hour','dow',
-                    'act_delay', 'prediction']
+                    'shape_dist_traveled', 'trip_id', 'vehicle_id',
+                    'stop_name', 'stop_lat', 'stop_lon','month', 'day',
+                    'hour','dow', 'act_delay', 'prediction']
 
     output_values = [route_dir_stop, route_dir, time_pct, float(stop_sequence),
-                    shape_dist_traveled, stop_name,
-                    stop_lat, stop_lon, month, day, hour, dow,
+                    shape_dist_traveled, trip_id, vehicle_id,
+                    stop_name, stop_lat, stop_lon, month, day, hour, dow,
                     (delay)/60, prediction]
 
     route_output_df = pd.DataFrame(columns=output_cols)
