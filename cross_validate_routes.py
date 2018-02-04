@@ -10,7 +10,7 @@ import boto3
 import pickle
 import multiprocessing
 
-def cross_val_all_routes():
+def cross_validate_routes():
     route_dir_list = get_route_dir_list()
     for i, route_dir in enumerate(route_dir_list):
         print("starting process for {} - #{} out of {}".format(
@@ -386,4 +386,4 @@ def plot_alpha_cv(ax, cv_alpha_result, n_estimators, n_folds, alphas):
     ax.set_ylabel("Test Error",  fontsize=15)
 
 if __name__ == "__main__":
-    cross_val_all_routes()
+    cross_validate_routes()
