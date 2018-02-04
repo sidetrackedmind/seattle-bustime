@@ -173,7 +173,7 @@ def get_params_from_db(conn, route_dir):
 
     cur.execute("SELECT best_alpha, best_depth "
                 "FROM model_params "
-                "WHERE route_dir  = '(%s)' ",
+                "WHERE route_dir  = (%s) ",
                 [route_dir]
                     )
     query_list = cur.fetchall()
