@@ -51,7 +51,8 @@ def get_best_route_params(route_dir):
 
     print("cross validate for max depth")
     #BEWARE! this number is dependent on a big EC2 instance
-    pool1 = multiprocessing.Pool(45)
+    n_pools = multiprocessing.cpu_count() - 2
+    pool1 = multiprocessing.Pool(n_pools)
     cv_depth_result = pool1.map(crossval_one_depth, tree_params)
 
     pool1.close()
@@ -60,7 +61,7 @@ def get_best_route_params(route_dir):
 
     print("cross validate for alpha")
     #BEWARE! this number is dependent on a big EC2 instance
-    pool2 = multiprocessing.Pool(45)
+    pool2 = multiprocessing.Pool(n_pools)
     cv_alpha_result = pool2.map(crossval_one_alpha, alpha_params)
 
     pool2.close()
