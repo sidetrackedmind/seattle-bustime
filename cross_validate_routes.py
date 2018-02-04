@@ -6,8 +6,6 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import mean_squared_error
 from train_all_routes import get_route_dir_list
-import boto3
-import pickle
 import multiprocessing
 
 def cross_validate_routes():
