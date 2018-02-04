@@ -78,7 +78,7 @@ def get_best_route_params(route_dir):
     update_cv_database(conn, best_alpha, best_depth, route_dir)
 
     #during testing phase return some params to quality check
-    return cv_depth_result, cv_alpha_result, best_depth, best_alpha
+    #return cv_depth_result, cv_alpha_result, best_depth, best_alpha
 
 
 def get_route_params(route_dir, tree_depths, alphas, n_folds,
