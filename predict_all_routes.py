@@ -96,7 +96,7 @@ def predict_one_route_pipeline(route_dir):
     query_col_list = ['route_dir_stop','stop_sequence', 'month', 'day',
                     'hour', 'dow', 'delay', 'stop_name', 'stop_lat',
                     'stop_lon', 'time_pct', 'shape_dist_traveled',
-                    'trip_id', 'vehicle_id']
+                    'trip_id', 'vehicle_id', 'arrival_time']
     select_string = column_list_to_string(query_col_list)
     query = '''
             select {}
@@ -128,6 +128,7 @@ def predict_one_route_pipeline(route_dir):
         shape_dist_traveled = stop_updates[11]
         trip_id = stop_updates[12]
         vehicle_id = stop_updates[13]
+        arrival_time = stop_updates[14]
 
         if i % 1000 == 0:
             print("completed {} updates".format(i))
@@ -149,7 +150,7 @@ def predict_one_route_pipeline(route_dir):
 
         update_route_df = build_output_df_row(route_dir_stop, route_dir,
                                 time_pct, stop_sequence, shape_dist_traveled,
-                                trip_id, vehicle_id,
+                                trip_id, vehicle_id, arrival_time,
                                 stop_name, stop_lat, stop_lon,
                                 month, day, hour, dow, delay, prediction)
 
@@ -166,17 +167,17 @@ def predict_one_route_pipeline(route_dir):
 
 
 def build_output_df_row(route_dir_stop, route_dir, time_pct, stop_sequence,
-                        shape_dist_traveled, trip_id, vehicle_id,
+                        shape_dist_traveled, trip_id, vehicle_id, arrival_time,
                         stop_name, stop_lat, stop_lon, month, day, hour,
                         dow, delay, prediction):
 
     output_cols = ['route_dir_stop','route_dir','time_pct','stop_sequence',
-                    'shape_dist_traveled', 'trip_id', 'vehicle_id',
+                    'shape_dist_traveled', 'trip_id', 'vehicle_id', 'arrival_time',
                     'stop_name', 'stop_lat', 'stop_lon','month', 'day',
                     'hour','dow', 'act_delay', 'prediction']
 
     output_values = [route_dir_stop, route_dir, time_pct, float(stop_sequence),
-                    shape_dist_traveled, trip_id, vehicle_id,
+                    shape_dist_traveled, trip_id, vehicle_id, arrival_time,
                     stop_name, stop_lat, stop_lon, month, day, hour, dow,
                     (delay)/60, prediction]
 
