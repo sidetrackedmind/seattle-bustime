@@ -104,8 +104,6 @@ def train_one_route(route_dir):
     cur.close()
     conn.close()
 
-    return call_status
-
 def get_route_dir_list():
     '''
     INPUT
