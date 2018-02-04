@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import boto3
 import pickle
+import multiprocessing
 
 def train_all_routes():
     '''This is a function to process user input into the model format
