@@ -119,12 +119,16 @@ conn.close()
 def index():
 
     pred_width = 30
+    conf_interval_10 = -5
+    conf_interval_90 = 10
 
     tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     return render_template('charts.html',
                                 pred_width=pred_width,
                                 tomorrows_date=tomorrows_date,
-                                route_names=route_list)
+                                route_names=route_list,
+                                conf_interval_10=conf_interval_10,
+                                conf_interval_90=conf_interval_90)
 
 @app.route('/route')
 def route():
@@ -138,13 +142,18 @@ def route():
 
     stop_names = select_route_name(route_short_df,
                                     current_route_name)
+    pred_width = 30
+    conf_interval_10 = -5
+    conf_interval_90 = 10
 
     return render_template('charts.html',
                                 current_route_name=current_route_name,
                                 route_names=route_list,
                                 tomorrows_date=tomorrows_date,
                                 stop_names=stop_names,
-                                hours=hours)
+                                hours=hours,
+                                conf_interval_10=conf_interval_10,
+                                conf_interval_90=conf_interval_90)
 
 
 @app.route('/predict', methods=['POST'])
@@ -187,4 +196,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', threaded=True)
+    app.run(host='0.0.0.0', threaded=True, debug=True)

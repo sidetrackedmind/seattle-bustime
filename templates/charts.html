@@ -47,46 +47,18 @@
     	$("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
         $("#confidence_int").html("90% confident the bus will arrive between " + result.conf_interval_10.toPrecision(3) + " and " + result.conf_interval_90.toPrecision(3) + " of the scheduled time");
 
-        var num_line_scale = 30
-        var mid_container = container_width/2
-        var left_margin = container_width/10
-        var right_margin = container_width/10
-        var conf_width = (result.conf_interval_90 - result.conf_interval_10)
-        var bar_width = (conf_width)*(container_width/num_line_scale)
-
-
-
-
 
 		}
 	  });
 	}
   </script>
-  <script>
-  var container_width = ($(window).width())/2
-  var scale = d3.scale.linear()
-                      .domain([-20,20])
-                      .range([0,container_width])
-  var xAxis = d3.axisBottom(scale)
-  var svgContainer = d3.select("svg")
-  var rectangle = svgContainer.append("rect")
-                                .attr("x", -10)
-                                .attr("y", 350/2)
-                                .attr("width", 20)
-                                .attr("height", 20)
-                                .style("fill", 'black');
-  </script>
 
-  <script>
-      clearCanvas = function(){
-          var c = document.getElementById("myCanvas");
-          var ctx = c.getContext("2d");
-          ctx.clearRect(0, 0, c.width, c.height);
-      }
-      </script>
+
 
 
   <style>
+    .axis { font: 16px sans-serif; }
+    .chart_title { font: 20px sans-serif; }
     .hidden {
 	  display: none;
 	}
@@ -153,14 +125,14 @@
             <tr>
                 <h3 id="prediction"></h3><h3 id="confidence_int"></h3>
             </tr>
+            <div id="chart">  </div>
         </div>
       </div>
       <!-- Prediction Space-->
       <hr>
 
       <!-- Map Area-->
-      <div id="mapid"></div>
-      <svg id="myCanvas" width="50%" height="350px"></svg>
+      <!--<div id="mapid"></div> -->
   </div>
 </div>
     <footer class="sticky-footer">
@@ -192,6 +164,100 @@
         </div>
       </div>
     </div>
+    <script>
+
+    var data = [{
+			"name": "Vivek",
+			"value": 40
+		}];
+
+      var margin = {
+          top: 15,
+          right: 100,
+          bottom: 30,
+          left: 100
+      };
+      var width = $(window).width() - margin.left - margin.right,
+          height = 150 - margin.top - margin.bottom;
+
+      var svg = d3.select("#chart").append("svg")
+                  .attr("width", width + margin.left + margin.right)
+                  .attr("height", height + margin.top + margin.bottom)
+                  .append('g');
+
+
+      var xScale = d3.scaleLinear()
+          .range([margin.left, width+margin.left])
+          .domain([-20, 20]);
+
+      xAxis = d3.axisBottom()
+              .scale(xScale);
+
+      svg.append('g')
+        .attr('class','axis')
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+
+        svg.append("text")
+            .attr("class", "chart_title")
+            .attr("transform", "translate(" + (margin.left + (width/2)) + " ," +
+                                        (height + margin.top + (height/4) )+ ")")
+            .style("text-anchor", "middle")
+            .text("Minutes");
+
+        var bars = svg.selectAll(".bar")
+            .data(data)
+            .enter()
+
+        var yaxisPoint = xScale({{conf_interval_10}})
+        var bar_width = xScale({{conf_interval_90}}) - yaxisPoint
+        var right_text = yaxisPoint + bar_width
+
+        //append rects
+        bars.append("rect")
+            .attr("class", "bar")
+            .attr("y", (2*height)/3)
+            .attr("height", height/4)
+            .attr("x", yaxisPoint)
+            .attr("width", bar_width)
+            .style("fill", "#909090");
+
+        bars.append("text")
+            .attr("class", "label-right")
+            .attr("y", (2*height)/3+(height/8))
+            .attr("x", right_text+7)
+            .style("text-anchor", "left")
+            .text({{conf_interval_90}})
+
+        bars.append("text")
+            .attr("class", "label-left")
+            .attr("y", (2*height)/3+(height/8))
+            .attr("x", yaxisPoint-25)
+            .style("text-anchor", "right")
+            .text({{conf_interval_10}})
+
+        svg.append("line")
+                .attr("x1", xScale(8))
+                .attr("y1", (3*height)/6)
+                .attr("x2", xScale(8))
+                .attr("y2", ((2*height)/3)+height/4)
+                .attr("stroke-width", 10)
+                .attr("stroke", "#980000")
+
+        var pred_text = svg.append("text")
+                        .attr("y", (4*height)/9)
+                        .attr("x", xScale(8))
+                        .style("text-anchor", "middle")
+                        .text(8)
+
+
+
+
+
+
+
+
+    </script>
     <script>
     var mymap = L.map('mapid').setView([47.60, -122.32], 13);
     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
