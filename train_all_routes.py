@@ -33,14 +33,14 @@ def train_all_routes():
                             port=port)
     cur = conn.cursor()
 
-    #route_dir_list = get_route_dir_list()
-
-    status, route_dir = find_next_route_dir(conn)
+    call_status, route_dir = find_next_route_dir(conn)
 
     #mark route as "in progress"
     route_in_progress(conn, route_dir)
 
-    if status == "Done":
+    best_alpha, best_depth = get_params_from_db(conn, route_dir)
+
+    if call_status == "Done":
         pass
     else:
         conn = psycopg2.connect(dbname=db_name,
@@ -86,8 +86,14 @@ def train_all_routes():
         all_columns_str = column_list_to_string(all_column_list)
         X = result_dummies.values
 
-        gbr = GradientBoostingRegressor(n_estimators=1500,
-                                        learning_rate=0.05)
+        gbr = GradientBoostingRegressor(loss='quantile',
+                                        n_estimators=1000,
+                                        learning_rate=0.015,
+                                        max_depth=best_depth,
+                                        subsample=0.5,
+                                        alpha=best_alpha,
+                                        random_state=128)
+
         print('starting model fit for {}_{}'.format(route_id, direction))
         fit_model = gbr.fit(X, y)
         print('model fit complete for {}_{}'.format(route_id, direction))
@@ -100,8 +106,8 @@ def train_all_routes():
         cur.close()
         conn.close()
 
-        return status
-    return status
+        return call_status
+    return call_status
 
 def get_route_dir_list():
     '''
@@ -157,6 +163,29 @@ def build_filename(route_id, direction):
     filename = prefix + route_dir + suffix
     return filename
 
+def get_params_from_db(conn, route_dir):
+    '''
+    getting best_alpha and best_depth from model_params table
+
+    OUTPUT
+    -------
+    best_alpha - best alpha value for that route based on CV
+    best_depth - best depth value for this route based on CV
+    '''
+    cur = conn.cursor()
+
+    cur.execute("SELECT best_alpha, best_depth "
+                "FROM model_params "
+                "WHERE route_dir  = '(%s)' ",
+                [route_dir]
+                    )
+    query_list = cur.fetchall()
+    best_alpha = query_list[0][0]
+    best_depth = query_list[0][1]
+
+    return best_alpha, best_depth
+
+
 def put_pickle_model(fit_model, filename):
         '''
 
@@ -208,15 +237,15 @@ def find_next_route_dir(conn):
                     "LIMIT 1"
                         )
     except:
-        status = "Done"
-        return status, None
+        call_status = "Done"
+        return call_status, None
 
     query_list = cur.fetchall()
 
     route_dir = query_list[0][0]
-    status = "Continue"
+    call_status = "Continue"
 
-    return status, route_dir
+    return call_status, route_dir
 
 def route_in_progress(conn, route_dir):
     cur = conn.cursor()
@@ -230,5 +259,5 @@ def route_in_progress(conn, route_dir):
 
 
 if __name__ == "__main__":
-    while status != "Done":
-        status = train_all_routes()
+    while call_status != "Done":
+        call_status = train_all_routes()

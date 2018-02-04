@@ -5,9 +5,17 @@ import psycopg2
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import mean_squared_error
+from train_all_routes import get_route_dir_list
 import boto3
 import pickle
 import multiprocessing
+
+def cross_val_all_routes():
+    route_dir_list = get_route_dir_list()
+    for i, route_dir in enumerate(route_dir_list):
+        print("starting process for {} - #{} out of {}".format(
+                                    route_dir, i, len(route_dir_list)))
+        get_best_route_params(route_dir)
 
 def get_best_route_params(route_dir):
     '''
@@ -35,8 +43,8 @@ def get_best_route_params(route_dir):
 
     #you can always change these grid paramters
     n_folds = 6
-    tree_depths = [3, 5, 7]
-    alphas = [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+    tree_depths = [3, 5, 7, 9]
+    alphas = [0.7, 0.75, 0.8, 0.85, 0.9]
     n_estimators = 1500
 
     print("getting tree and alpha params")
@@ -44,7 +52,8 @@ def get_best_route_params(route_dir):
                                         alphas, n_folds, n_estimators)
 
     print("cross validate for max depth")
-    pool1 = multiprocessing.Pool(12)
+    #BEWARE! this number is dependent on a big EC2 instance
+    pool1 = multiprocessing.Pool(45)
     cv_depth_result = pool1.map(crossval_one_depth, tree_params)
 
     pool1.close()
@@ -52,7 +61,8 @@ def get_best_route_params(route_dir):
 
 
     print("cross validate for alpha")
-    pool2 = multiprocessing.Pool(12)
+    #BEWARE! this number is dependent on a big EC2 instance
+    pool2 = multiprocessing.Pool(45)
     cv_alpha_result = pool2.map(crossval_one_alpha, alpha_params)
 
     pool2.close()
@@ -374,3 +384,6 @@ def plot_alpha_cv(ax, cv_alpha_result, n_estimators, n_folds, alphas):
     ax.legend(fontsize=15)
     ax.set_xlabel("n_estimators", fontsize=15)
     ax.set_ylabel("Test Error",  fontsize=15)
+
+if __name__ == "__main__":
+    cross_val_all_routes()
