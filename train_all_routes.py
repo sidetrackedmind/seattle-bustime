@@ -48,7 +48,7 @@ def train_one_route(route_dir):
         #mark route as "in progress"
         route_in_progress(conn, route_dir)
 
-        best_alpha, best_depth = get_params_from_db(conn, route_dir)
+        best_depth = get_params_from_db(conn, route_dir)
 
         cur = conn.cursor()
 
@@ -90,11 +90,11 @@ def train_one_route(route_dir):
         X = result_dummies.values
 
         gbr = GradientBoostingRegressor(loss='quantile',
-                                        n_estimators=3500,
-                                        learning_rate=0.0075,
+                                        n_estimators=5000,
+                                        learning_rate=0.005,
                                         max_depth=best_depth,
                                         subsample=0.5,
-                                        alpha=best_alpha,
+                                        alpha=0.9,
                                         random_state=128)
 
         print('starting model fit for {}_{}'.format(route_id, direction))
@@ -174,16 +174,15 @@ def get_params_from_db(conn, route_dir):
     '''
     cur = conn.cursor()
 
-    cur.execute("SELECT best_alpha, best_depth "
+    cur.execute("SELECT best_depth "
                 "FROM model_params "
                 "WHERE route_dir  = (%s) ",
                 [route_dir]
                     )
     query_list = cur.fetchall()
-    best_alpha = query_list[0][0]
-    best_depth = query_list[0][1]
+    best_depth = query_list[0][0]
 
-    return best_alpha, best_depth
+    return best_depth
 
 def cross_val_check(conn, route_dir):
     '''
