@@ -48,7 +48,13 @@ route_short_list = cur.fetchall()
 route_short_df = pd.DataFrame(route_short_list,
                         columns=query_selections)
 
-route_list = list(route_short_df['short_dir'].unique())
+
+route_short_list = list(route_short_df['route_short_name'].unique())
+excluded_list = ['A Line', 'B Line', 'C Line', 'D Line', 'E Line',
+                'F Line']
+cut_route_list = [route for route in route_short_list if route not in excluded_list]
+route_arr = np.array(cut_route_list).astype(int)
+sorted_routes = sorted(route_arr)
 
 
 conn.rollback()
@@ -87,7 +93,7 @@ print(len(stop_hour_df))
 
 #direction_names = ["1","0"]
 
-hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+stop_hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
 def select_stop_conf(stop_hour_df, stop_name, route_dir, hour):
@@ -101,11 +107,57 @@ def select_stop_conf(stop_hour_df, stop_name, route_dir, hour):
 
     return conf_interval_arr
 
-def select_route_name(route_short_df, route_name):
-    route_mask = (route_short_df['short_dir'] == route_name)
-    select_stop_names = route_short_df[route_mask]['stop_name'].unique().tolist()
+def get_stop_hours(stop_hour_df, route_short_df, route_short_name,
+                    stop_name, direction):
+    route_dir_mask = ((route_short_df['route_short_name'] == route_short_name)
+                    & (route_short_df['direction_id'] == direction))
+    select_route_dir = route_short_df[route_dir_mask]
+    route_id = select_route_dir['route_id'].unique()[0]
+    stop_route_id_mask = ((stop_hour_df['route_id'] == route_id) &
+                            (stop_hour_df['stop_name'] == stop_name))
+    stop_hours = stop_hour_df[stop_route_id_mask]['stop_hours'].values[0].strip("[]").split(",")
+    return stop_hours
 
-    return select_stop_names
+
+
+def get_stop_names(route_short_df, route_short_name, direction):
+    route_dir_mask = ((route_short_df['route_short_name'] == route_short_name)
+                    & (route_short_df['direction_id'] == direction))
+    select_route_dir = route_short_df[route_dir_mask]
+    sorted_route = select_route_dir.sort_values(by='stop_sequence')
+    sorted_stop_names = sorted_route['stop_name'].unique().tolist()
+
+
+    return sorted_stop_names
+
+def make_direction_list(route_short_df, short_name):
+    direction_list = list(route_short_df['direction_id'].unique())
+    if len(route_short_df['direction_id'].unique()) < 2:
+        route_mask_dir1 = ((route_short_df['route_short_name'] == short_name)
+                            & (route_short_df['direction_id'] == direction_list[0]))
+        select_route_dir1_df = route_short_df[route_mask_dir1]
+        sorted_route = select_route_dir1_df.sort_values(by='stop_sequence')
+        num_stops = len(sorted_route) - 1
+        last_stop = "TO "+str(sorted_route['stop_name'].iloc[num_stops])
+        directions = [last_stop]
+
+    else:
+        route_mask_dir1 = ((route_short_df['route_short_name'] == short_name)
+                            & (route_short_df['direction_id'] == 1))
+        select_route_dir1_df = route_short_df[route_mask_dir1]
+        sorted_route_dir1 = select_route_dir1_df.sort_values(by='stop_sequence')
+        num_stops = len(sorted_route_dir1) - 1
+        last_stop_dir1 = "TO "+str(sorted_route_dir1['stop_name'].iloc[num_stops])
+
+        route_mask_dir0 = ((route_short_df['route_short_name'] == short_name)
+                            & (route_short_df['direction_id'] == 0))
+        select_route_dir0_df = route_short_df[route_mask_dir0]
+        sorted_route_dir0 = select_route_dir0_df.sort_values(by='stop_sequence')
+        num_stops = len(sorted_route_dir0) - 1
+        last_stop_dir0 = "TO "+str(sorted_route_dir0['stop_name'].iloc[num_stops])
+        directions = [last_stop_dir0, last_stop_dir1]
+    return directions
+
 
 def short_dir_to_route_dir(route_short_df, short_dir):
     short_dir_mask = route_short_df['short_dir'] == short_dir
@@ -118,42 +170,58 @@ conn.close()
 @app.route('/')
 def index():
 
-    pred_width = 30
-    conf_interval_10 = -5
-    conf_interval_90 = 10
 
     tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     return render_template('charts.html',
-                                pred_width=pred_width,
                                 tomorrows_date=tomorrows_date,
-                                route_names=route_list,
-                                conf_interval_10=conf_interval_10,
-                                conf_interval_90=conf_interval_90)
+                                route_names=sorted_routes
+                                )
+
 
 @app.route('/route')
 def route():
 
 #    current_date = request.args.get("datepicker")
 
-    current_route_name = request.args.get("routeSelect")
+    current_route_short_name = request.args.get("routeSelect")
+
+    current_direction = request.args.get("directionSelect")
+
+    current_stop_name = request.args.get("stopSelect")
 
     tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
+    directions = make_direction_list(route_short_df, current_route_short_name)
 
-    stop_names = select_route_name(route_short_df,
-                                    current_route_name)
-    pred_width = 30
-    conf_interval_10 = -5
-    conf_interval_90 = 10
+    if current_direction == directions[1]:
+        direction = 1
+        stop_names = get_stop_names(route_short_df,
+                                    current_route_short_name, direction)
+    else:
+        direction = 0
+        stop_names = get_stop_names(route_short_df,
+                                    current_route_short_name, direction)
+
+    '''if current_stop_name != None:
+        stop_hours = get_stop_hours(stop_hour_df, route_short_df,
+                                    current_route_short_name,
+                                    current_stop_name, direction)
+        stop_hour_arr = np.array(stop_hours)
+        sorted_hours = sorted(stop_hour_arr, reverse=True)'''
+    stop_hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+
+
 
     return render_template('charts.html',
-                                current_route_name=current_route_name,
-                                route_names=route_list,
+                                current_route_name=current_route_short_name,
+                                route_names=route_short_list,
                                 tomorrows_date=tomorrows_date,
+                                current_direction=current_direction,
                                 stop_names=stop_names,
-                                hours=hours,
-                                conf_interval_10=conf_interval_10,
-                                conf_interval_90=conf_interval_90)
+                                hours=stop_hours,
+                                directions=directions
+                                )
 
 
 @app.route('/predict', methods=['POST'])
@@ -163,16 +231,27 @@ def predict():
 
     print(user_data)
 
-    short_dir, stop_name, hour, date = (user_data['user_route'],
+    route_short_name, current_direction, stop_name, hour, date = (user_data['user_route'],
+                                user_data['user_direction'],
                                 user_data['user_stop'],
                                 int(user_data['user_hour']),
                                 user_data['user_date'])
 
-    route_short_name = short_dir.split('_')[0]
-    direction = short_dir.split('_')[1]
+    directions = make_direction_list(route_short_df,
+                                        route_short_name)
+
+    if current_direction == directions[1]:
+        direction = 1
+    else:
+        direction = 0
+
+
+
 
     print(route_short_name, stop_name, direction,
                             date, hour)
+
+    short_dir = str(route_short_name) + "_" + str(direction)
 
 
     prediction = dashboard_pipe(route_short_name, stop_name, direction,
@@ -186,6 +265,8 @@ def predict():
 
     conf_interval_10 = conf_interval_arr[0]
     conf_interval_90 = conf_interval_arr[1]
+
+    print(conf_interval_10, conf_interval_90, prediction)
 
     return jsonify({'prediction': prediction,
                     'conf_interval_10': conf_interval_10,

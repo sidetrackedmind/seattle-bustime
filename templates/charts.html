@@ -28,35 +28,11 @@
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
 
 
-<script>
-
-
-    predict = function(){
-	  user_route = $("#routeSelect").val()
-	  user_stop = $("#stopSelect").val()
-      user_hour = $("#hourSelect").val()
-      user_date = $("#dateSelect").val()
-
-	  user_info = {user_route : user_route, user_stop : user_stop, user_hour : user_hour, user_date : user_date}
-
-	  $.post({
-	    url: "/predict",
-		contentType: "application/json",
-		data: JSON.stringify(user_info),
-		success: function(result){
-    	$("#prediction").html("The prediction is " + result.prediction.toPrecision(3));
-        $("#confidence_int").html("90% confident the bus will arrive between " + result.conf_interval_10.toPrecision(3) + " and " + result.conf_interval_90.toPrecision(3) + " of the scheduled time");
-
-
-		}
-	  });
-	}
-  </script>
-
 
 
 
   <style>
+    .bar {fill:orange;stroke:orange;fill-opacity:0.5;}
     .axis { font: 16px sans-serif; }
     .chart_title { font: 20px sans-serif; }
     .hidden {
@@ -80,7 +56,7 @@
       <div class="card mb-3">
         <div class="card-header">
 
-          <i class="fa fa-area-chart"></i> User Inputs</div>
+          <i class="fa fa-area-chart"></i> </div>
         <div class="user_inputs" align="center">
 
             <tr>
@@ -93,6 +69,18 @@
                   			<option name="route" value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
                   		{% else %}
                   			<option name="route" value="{{ route }}">{{ route }}</option>
+                  		{% endif %}
+                  	{% endfor %}
+                  </select>
+                </td>
+                <td>Direction</td>
+                <td>
+                  <select name="directionSelect" id="directionSelect" class="selectDirection" onchange=submit()>
+                      {% for direction in directions %}
+                  		{% if direction == current_direction %}
+                  			<option name="direction" value="{{ current_direction }}" selected="selected">{{ current_direction }}</option>
+                  		{% else %}
+                  			<option name="direction" value="{{ direction }}">{{ direction }}</option>
                   		{% endif %}
                   	{% endfor %}
                   </select>
@@ -166,32 +154,68 @@
     </div>
     <script>
 
+    predict = function(){
+	  user_route = $("#routeSelect").val()
+      user_direction = $("#directionSelect").val()
+	  user_stop = $("#stopSelect").val()
+      user_hour = $("#hourSelect").val()
+      user_date = $("#dateSelect").val()
+
+	  user_info = {user_route : user_route, user_direction :
+          user_direction, user_stop : user_stop,
+          user_hour : user_hour, user_date : user_date}
+
+	  $.post({
+	    url: "/predict",
+		contentType: "application/json",
+		data: JSON.stringify(user_info),
+		success: function(result){
+    	prediction = Math.round(result.prediction)
+        conf_interval_10 = Math.round(result.conf_interval_10)
+        conf_interval_90 = Math.round(result.conf_interval_90)
+
+        $("#chart").html("")
+
+        predict_graph(prediction, conf_interval_10, conf_interval_90)
+
+		}
+	  });
+	}
+
+
+
+    predict_graph = function(prediction, conf_interval_10, conf_interval_90){
+
+    var prediction = prediction
+    var conf_interval_10 = conf_interval_10
+    var conf_interval_90 = conf_interval_90
     var data = [{
 			"name": "Vivek",
 			"value": 40
 		}];
 
-      var margin = {
-          top: 15,
-          right: 100,
-          bottom: 30,
-          left: 100
-      };
-      var width = $(window).width() - margin.left - margin.right,
-          height = 150 - margin.top - margin.bottom;
+        var margin = {
+            top: 15,
+            right: 100,
+            bottom: 30,
+            left: 100
+        };
+        var width = $(window).width() - margin.left - margin.right,
+            height = 150 - margin.top - margin.bottom;
 
-      var svg = d3.select("#chart").append("svg")
-                  .attr("width", width + margin.left + margin.right)
-                  .attr("height", height + margin.top + margin.bottom)
-                  .append('g');
+        var svg = d3.select("#chart").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append('g');
 
 
-      var xScale = d3.scaleLinear()
-          .range([margin.left, width+margin.left])
-          .domain([-20, 20]);
+        var xScale = d3.scaleLinear()
+            .range([margin.left, width+margin.left])
+            .domain([-20, 20]);
 
-      xAxis = d3.axisBottom()
-              .scale(xScale);
+        xAxis = d3.axisBottom()
+                .scale(xScale);
+
 
       svg.append('g')
         .attr('class','axis')
@@ -209,9 +233,15 @@
             .data(data)
             .enter()
 
-        var yaxisPoint = xScale({{conf_interval_10}})
-        var bar_width = xScale({{conf_interval_90}}) - yaxisPoint
+
+        var yaxisPoint = xScale(conf_interval_10)
+        var bar_width = xScale(conf_interval_90) - yaxisPoint
         var right_text = yaxisPoint + bar_width
+
+        var t = d3.transition()
+                    .duration(750)
+                    .ease(d3.easeLinear);
+
 
         //append rects
         bars.append("rect")
@@ -220,43 +250,36 @@
             .attr("height", height/4)
             .attr("x", yaxisPoint)
             .attr("width", bar_width)
-            .style("fill", "#909090");
 
         bars.append("text")
             .attr("class", "label-right")
             .attr("y", (2*height)/3+(height/8))
             .attr("x", right_text+7)
             .style("text-anchor", "left")
-            .text({{conf_interval_90}})
+            .text(conf_interval_90)
 
         bars.append("text")
             .attr("class", "label-left")
             .attr("y", (2*height)/3+(height/8))
-            .attr("x", yaxisPoint-25)
+            .attr("x", yaxisPoint-15)
             .style("text-anchor", "right")
-            .text({{conf_interval_10}})
+            .text(conf_interval_10)
 
         svg.append("line")
-                .attr("x1", xScale(8))
+                .attr("x1", xScale(prediction))
                 .attr("y1", (3*height)/6)
-                .attr("x2", xScale(8))
+                .attr("x2", xScale(prediction))
                 .attr("y2", ((2*height)/3)+height/4)
                 .attr("stroke-width", 10)
                 .attr("stroke", "#980000")
 
         var pred_text = svg.append("text")
                         .attr("y", (4*height)/9)
-                        .attr("x", xScale(8))
+                        .attr("x", xScale(prediction))
                         .style("text-anchor", "middle")
-                        .text(8)
+                        .text(prediction)
 
-
-
-
-
-
-
-
+                    }
     </script>
     <script>
     var mymap = L.map('mapid').setView([47.60, -122.32], 13);
