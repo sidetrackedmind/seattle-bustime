@@ -30,8 +30,11 @@ def predict_all_routes():
 
     #n_pools = multiprocessing.cpu_count() - 2
 
-    pool = multiprocessing.Pool(4)
-    pool.map(predict_one_route, route_dir_list)
+    #pool = multiprocessing.Pool(4)
+    #pool.map(predict_one_route, route_dir_list)
+
+    for route_dir in route_dir_list:
+        predict_one_route(route_dir)
 
 
 
