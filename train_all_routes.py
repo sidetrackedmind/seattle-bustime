@@ -207,7 +207,7 @@ def trained_check(conn, route_dir):
                     )
     trained_status = cur.fetchall()
 
-    return trained_status[0][0] == 'finished'
+    return trained_status[0][0] != 'finished'
 
 def cross_val_check(conn, route_dir):
     '''
