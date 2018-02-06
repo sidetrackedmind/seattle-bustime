@@ -43,8 +43,11 @@ def predict_all_routes():
 
     #n_pools = multiprocessing.cpu_count() - 2
 
-    pool = multiprocessing.Pool(16)
-    pool.map(predict_one_route, route_dir_list)
+    #pool = multiprocessing.Pool(16)
+    #pool.map(predict_one_route, route_dir_list)
+
+    for route_dir in route_dir_list:
+        predict_one_route(route_dir)
 
 
 
@@ -219,6 +222,7 @@ def update_prediction_db(route_output_df):
                                     db_name))
     write_to_table(route_output_df, engine, table_name='pred_metrics',
                                         if_exists='append')
+
 
 def write_to_table(df, db_engine, table_name, if_exists='fail'):
     string_data_io = io.StringIO()
