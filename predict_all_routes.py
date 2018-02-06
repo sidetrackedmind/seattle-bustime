@@ -41,9 +41,9 @@ def predict_all_routes():
 
     route_dir_list = get_route_dir_list()
 
-    n_pools = multiprocessing.cpu_count() - 2
+    #n_pools = multiprocessing.cpu_count() - 2
 
-    pool = multiprocessing.Pool(n_pools)
+    pool = multiprocessing.Pool(16)
     pool.map(predict_one_route, route_dir_list)
 
 
