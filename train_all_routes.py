@@ -94,7 +94,7 @@ def train_one_route(route_dir):
                                         learning_rate=0.005,
                                         max_depth=best_depth,
                                         subsample=0.5,
-                                        alpha=0.9,
+                                        alpha=0.75,
                                         random_state=128)
 
         print('starting model fit for {}_{}'.format(route_id, direction))

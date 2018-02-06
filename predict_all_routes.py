@@ -7,7 +7,10 @@ import model_predict
 import boto3
 import pickle
 import prediction_check
+from train_all_routes import get_route_dir_list
 import io
+
+
 
 def predict_all_routes():
     '''This is a function to process user input into the model format
@@ -35,31 +38,16 @@ def predict_all_routes():
                             port=port)
     cur = conn.cursor()
 
-    query = '''
-            select distinct (route_dir)
-            from route_info
-             '''
+    route_dir_list = get_route_dir_list()
 
-    cur.execute(query)
-    route_dir_list = cur.fetchall()
+    n_pools = multiprocessing.cpu_count() - 2
 
-    for i, item in enumerate(route_dir_list):
-        route_dir = item[0]
+    pool = multiprocessing.Pool(n_pools)
+    pool.map(predict_one_route, route_dir_list)
 
-        route_output_df = predict_one_route_pipeline(route_dir)
 
-        #set up engine
-        engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
-                                        user,
-                                        key,
-                                        host,
-                                        port,
-                                        db_name))
-        print("writing {} to database".format(route_dir))
-        write_to_table(route_output_df, engine, table_name='pred_metrics',
-                                            if_exists='append')
 
-def predict_one_route_pipeline(route_dir):
+def predict_one_route(route_dir):
     '''
     '''
     db_name = os.environ["RDS_NAME"]
@@ -163,7 +151,8 @@ def predict_one_route_pipeline(route_dir):
 
     prediction_check.prediction_check(full_route_output_df, route_dir)
 
-    return full_route_output_df
+    print("writing {} to database".format(route_dir))
+    update_prediction_db(full_route_output_df)
 
 
 def build_output_df_row(route_dir_stop, route_dir, time_pct, stop_sequence,
@@ -197,6 +186,38 @@ def column_list_to_string(list):
         else:
             column_str += ","+str(col)
     return column_str
+
+def update_prediction_db(route_output_df):
+    '''
+    WARNING - remember to clear existing 'pred_metrics'
+                table if you retrain the models
+                
+    POSSIBLE UPGRADE - think about a way to compare 'pred_metrics'
+                    tables across different model trainings
+
+    INPUT
+    ------
+    route_output_df - a pandas dataframe containing
+                        one route_dir's predictions for a given
+                        X_array
+    OUTPUT
+    -------
+    updated 'pred_metrics' table in RDS
+    '''
+    #engine params
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+    engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(
+                                    user,
+                                    key,
+                                    host,
+                                    port,
+                                    db_name))
+    write_to_table(route_output_df, engine, table_name='pred_metrics',
+                                        if_exists='append')
 
 def write_to_table(df, db_engine, table_name, if_exists='fail'):
     string_data_io = io.StringIO()

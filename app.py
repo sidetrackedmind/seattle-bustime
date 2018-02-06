@@ -262,9 +262,14 @@ def predict():
     conf_interval_arr = select_stop_conf(stop_hour_df, stop_name, route_dir, hour)
 
 
-
-    conf_interval_10 = conf_interval_arr[0]
-    conf_interval_90 = conf_interval_arr[1]
+    if conf_interval_arr[0] == 'nan':
+        conf_interval_10 = -0.01
+    else:
+        conf_interval_10 = conf_interval_arr[0]
+    if conf_interval_arr[1] == 'nan':
+        conf_interval_90 = 0.01
+    else:
+        conf_interval_90 = conf_interval_arr[1]
 
     print(conf_interval_10, conf_interval_90, prediction)
 
