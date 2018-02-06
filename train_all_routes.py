@@ -43,7 +43,8 @@ def train_one_route(route_dir):
                             port=port)
 
     #check if route has been cross validated
-    if cross_val_check(conn, route_dir):
+    #if cross_val_check(conn, route_dir):
+    if trained_check(conn, route_dir):
 
         #mark route as "in progress"
         route_in_progress(conn, route_dir)
@@ -108,6 +109,8 @@ def train_one_route(route_dir):
 
         cur.close()
         conn.close()
+    else:
+        pass
 
 def get_route_dir_list():
     '''
@@ -183,6 +186,28 @@ def get_params_from_db(conn, route_dir):
     best_depth = query_list[0][0]
 
     return best_depth
+
+def trained_check(conn, route_dir):
+    '''
+    checking trainging database
+    if the route_dir has been trained return True
+    else return False
+
+    OUTPUT
+    -------
+    True - if route_dir has been trained
+    False - if route_dir has not been trained
+    '''
+    cur = conn.cursor()
+
+    cur.execute("SELECT processed "
+                "FROM models "
+                "WHERE route_dir  = (%s) ",
+                [route_dir]
+                    )
+    trained_status = cur.fetchall()
+
+    return trained_status[0][0] == 'finished'
 
 def cross_val_check(conn, route_dir):
     '''

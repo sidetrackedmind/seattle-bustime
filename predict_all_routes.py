@@ -191,7 +191,7 @@ def update_prediction_db(route_output_df):
     '''
     WARNING - remember to clear existing 'pred_metrics'
                 table if you retrain the models
-                
+
     POSSIBLE UPGRADE - think about a way to compare 'pred_metrics'
                     tables across different model trainings
 
