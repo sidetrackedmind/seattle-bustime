@@ -25,29 +25,13 @@ def predict_all_routes():
     create RDS table with prediction metrics
     called pred_metrics
     '''
-    #engine params
-    db_name = os.environ["RDS_NAME"]
-    user = os.environ["RDS_USER"]
-    key = os.environ["RDS_KEY"]
-    host = os.environ["RDS_HOST"]
-    port = os.environ["RDS_PORT"]
-
-    conn = psycopg2.connect(dbname=db_name,
-                            user=user,
-                            password=key,
-                            host=host,
-                            port=port)
-    cur = conn.cursor()
 
     route_dir_list = get_route_dir_list()
 
     #n_pools = multiprocessing.cpu_count() - 2
 
-    #pool = multiprocessing.Pool(16)
-    #pool.map(predict_one_route, route_dir_list)
-
-    for route_dir in route_dir_list:
-        predict_one_route(route_dir)
+    pool = multiprocessing.Pool(4)
+    pool.map(predict_one_route, route_dir_list)
 
 
 
