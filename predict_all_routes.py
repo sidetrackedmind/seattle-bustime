@@ -26,12 +26,12 @@ def predict_all_routes():
     called pred_metrics
     '''
 
-    route_dir_list = get_route_dir_list()
+    route_dir_to_pred = get_route_dir_not_predicted()
 
     n_pools = multiprocessing.cpu_count() - 2
 
     pool = multiprocessing.Pool(4)
-    pool.map(predict_one_route, route_dir_list)
+    pool.map(predict_one_route, route_dir_to_pred)
 
 
 
@@ -208,6 +208,52 @@ def update_prediction_db(route_output_df):
     write_to_table(route_output_df, engine, table_name='pred_metrics',
                                         if_exists='append')
 
+
+def get_route_dir_not_predicted():
+    '''
+    INPUT
+    -------
+    none
+
+    OUTPUT
+    --------
+    route_dir_list
+    '''
+    db_name = os.environ["RDS_NAME"]
+    user = os.environ["RDS_USER"]
+    key = os.environ["RDS_KEY"]
+    host = os.environ["RDS_HOST"]
+    port = os.environ["RDS_PORT"]
+
+    conn = psycopg2.connect(dbname=db_name,
+                            user=user,
+                            password=key,
+                            host=host,
+                            port=port)
+    cur = conn.cursor()
+
+    query = '''
+            select distinct (route_dir)
+            from pred_metrics
+             '''
+
+    cur.execute(query)
+    route_dir_query = cur.fetchall()
+
+    route_dir_list = get_route_dir_list()
+    route_dir_notpred_list = []
+
+    for item in route_dir_query:
+        route_dir = item[0]
+        route_dir_notpred_list.append(route_dir)
+
+    route_dir_to_pred = []
+
+    for route_dir in route_dir_list:
+        if route_dir not in route_dir_notpred_list:
+            route_dir_to_pred.append(route_dir)
+
+    return route_dir_to_pred
 
 def write_to_table(df, db_engine, table_name, if_exists='fail'):
     string_data_io = io.StringIO()
