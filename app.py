@@ -112,8 +112,8 @@ def get_stop_hours(stop_hour_df, route_short_df, route_short_name,
     route_dir_mask = ((route_short_df['route_short_name'] == route_short_name)
                     & (route_short_df['direction_id'] == direction))
     select_route_dir = route_short_df[route_dir_mask]
-    route_id = select_route_dir['route_id'].unique()[0]
-    stop_route_id_mask = ((stop_hour_df['route_id'] == route_id) &
+    route_dir = select_route_dir['route_dir'].unique()[0]
+    stop_route_id_mask = ((stop_hour_df['route_dir'] == route_dir) &
                             (stop_hour_df['stop_name'] == stop_name))
     stop_hours = stop_hour_df[stop_route_id_mask]['stop_hours'].values[0].strip("[]").split(",")
     return stop_hours
@@ -202,14 +202,15 @@ def route():
         stop_names = get_stop_names(route_short_df,
                                     current_route_short_name, direction)
 
-    '''if current_stop_name != None:
+    if current_stop_name != None:
         stop_hours = get_stop_hours(stop_hour_df, route_short_df,
                                     current_route_short_name,
                                     current_stop_name, direction)
         stop_hour_arr = np.array(stop_hours)
-        sorted_hours = sorted(stop_hour_arr, reverse=True)'''
-    stop_hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-                12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+        stop_hours = sorted(stop_hour_arr, reverse=True)
+    else:
+        stop_hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
 
 
