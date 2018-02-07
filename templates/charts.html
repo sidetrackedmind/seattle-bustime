@@ -108,7 +108,7 @@
                     {% endfor %}
                 </select>
                 <td>Date</td>
-                <input id="dateSelect" name="dateSelect" type="date" value="{{ tomorrows_date }}"/>
+                <input id="dateSelect" name="dateSelect" type="date" value="{{ current_date }}"/>
                 <td>Hour</td>
                 <select name="hourSelect" id="hourSelect" class="selectStop" onchange="hour_change()">
                     {% for hour in hours %}
