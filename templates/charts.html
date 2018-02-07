@@ -100,7 +100,7 @@
                 <td>Stop</td>
                 <select name="stopSelect" id="stopSelect" class="selectStop" onchange="stop_change()">
                     {% for stop in stop_names %}
-                      {% if stop == current_stop %}
+                      {% if stop == current_stop_name %}
                           <option name="stop" value="{{ stop }}" selected="selected">{{ stop }}</option>
                       {% else %}
                           <option name="stop" value="{{ stop }}">{{ stop }}</option>

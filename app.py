@@ -136,6 +136,7 @@ def get_stop_names(route_short_df, route_short_name, direction):
 
 def make_direction_list(route_short_df, short_name):
     direction_list = list(route_short_df['direction_id'].unique())
+    default_direction = "Select a direction"
     if len(route_short_df['direction_id'].unique()) < 2:
         route_mask_dir1 = ((route_short_df['route_short_name'] == short_name)
                             & (route_short_df['direction_id'] == direction_list[0]))
@@ -143,7 +144,7 @@ def make_direction_list(route_short_df, short_name):
         sorted_route = select_route_dir1_df.sort_values(by='stop_sequence')
         num_stops = len(sorted_route) - 1
         last_stop = "TO "+str(sorted_route['stop_name'].iloc[num_stops])
-        directions = [last_stop]
+        directions = [last_stop, default_direction]
 
     else:
         route_mask_dir1 = ((route_short_df['route_short_name'] == short_name)
@@ -159,7 +160,7 @@ def make_direction_list(route_short_df, short_name):
         sorted_route_dir0 = select_route_dir0_df.sort_values(by='stop_sequence')
         num_stops = len(sorted_route_dir0) - 1
         last_stop_dir0 = "TO "+str(sorted_route_dir0['stop_name'].iloc[num_stops])
-        directions = [last_stop_dir0, last_stop_dir1]
+        directions = [last_stop_dir0, last_stop_dir1, default_direction]
     return directions
 
 
@@ -186,45 +187,49 @@ def index():
 def route():
 
 
-    current_route_short_name = request.args.get("routeSelect")
+    current_route_name = request.args.get("routeSelect")
 
     current_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
-    directions = make_direction_list(route_short_df, current_route_short_name)
+    directions = make_direction_list(route_short_df, current_route_name)
+
+    current_direction = "Select a direction"
+
+
 
 
 
 
     return render_template('charts.html',
-                                current_route_name=current_route_short_name,
                                 route_names=route_short_list,
+                                current_route_name=current_route_name,
                                 current_date=current_date,
-                                directions=directions
-                                )
+                                current_direction=current_direction,
+                                directions=directions)
 
 @app.route('/direction', methods=['GET', 'POST'])
 def direction():
 
-    current_route_short_name = request.args.get("routeSelect")
+    current_route_name = request.args.get("routeSelect")
 
     current_direction = request.args.get("directionSelect")
 
     current_date = request.args.get("dateSelect")
 
-    directions = make_direction_list(route_short_df, current_route_short_name)
+    directions = make_direction_list(route_short_df, current_route_name)
 
     if current_direction == directions[1]:
         direction = 1
         stop_names = get_stop_names(route_short_df,
-                                    current_route_short_name, direction)
+                                    current_route_name, direction)
     else:
         direction = 0
         stop_names = get_stop_names(route_short_df,
-                                    current_route_short_name, direction)
+                                    current_route_name, direction)
 
     return render_template('charts.html',
-                                current_route_name=current_route_short_name,
                                 route_names=route_short_list,
+                                current_route_name=current_route_name,
                                 current_date=current_date,
                                 current_direction=current_direction,
                                 stop_names=stop_names,
@@ -234,7 +239,7 @@ def direction():
 @app.route('/stop')
 def stop():
 
-    current_route_short_name = request.args.get("routeSelect")
+    current_route_name = request.args.get("routeSelect")
 
     current_direction = request.args.get("directionSelect")
 
@@ -244,30 +249,31 @@ def stop():
 
     tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
-    directions = make_direction_list(route_short_df, current_route_short_name)
+    directions = make_direction_list(route_short_df, current_route_name)
 
     if current_direction == directions[1]:
         direction = 1
         stop_names = get_stop_names(route_short_df,
-                                    current_route_short_name, direction)
+                                    current_route_name, direction)
     else:
         direction = 0
         stop_names = get_stop_names(route_short_df,
-                                    current_route_short_name, direction)
+                                    current_route_name, direction)
 
     stop_hours = get_stop_hours(stop_hour_df, route_short_df,
-                                current_route_short_name,
+                                current_route_name,
                                 current_stop_name, direction)
     stop_hour_arr = np.array(stop_hours)
     hours = sorted(stop_hour_arr, reverse=True)
 
     return render_template('charts.html',
-                                current_route_name=current_route_short_name,
                                 route_names=route_short_list,
+                                current_route_name=current_route_name,
                                 current_date=current_date,
                                 current_direction=current_direction,
                                 stop_names=stop_names,
                                 directions=directions,
+                                current_stop_name=current_stop_name,
                                 hours=hours
                                 )
 
