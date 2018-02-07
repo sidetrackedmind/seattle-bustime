@@ -211,7 +211,7 @@ def get_route_metrics(route_short_name, stop_name, direction):
     query_list = cur.fetchall()
     route_id = query_list[0][0]
     route_dir = str(route_id) + '_' + str(direction)
-    pickle_path = build_filename(route_id, direction)
+    #pickle_path = build_filename(route_id, direction)
 
     model_col_list = ['route_dir_stop','stop_id','stop_name','stop_sequence','month', 'day', 'hour','dow','delay']
 
@@ -295,6 +295,15 @@ def update_status_database(conn, route_dir):
                     "WHERE route_dir = (%s) ",
                     [route_dir])
     conn.commit()
+
+def column_list_to_string(list):
+    column_str = ''
+    for i, col in enumerate(list):
+        if i == 0:
+            column_str += str(col)
+        else:
+            column_str += ","+str(col)
+    return column_str
 
 def percentile(n):
     def percentile_(x):
