@@ -109,16 +109,14 @@ def select_stop_conf(stop_hour_df, stop_name, route_dir, hour):
 
 def get_stop_hours(stop_hour_df, route_short_df, route_short_name,
                     stop_name, direction):
-    route_dir_mask = ((route_short_df['route_short_name'] == route_short_name)
+    short_dir_mask = ((route_short_df['route_short_name'] == route_short_name)
                     & (route_short_df['direction_id'] == direction))
-    select_route_dir = route_short_df[route_dir_mask]
+    select_route_dir = route_short_df[short_dir_mask]
     route_dir = select_route_dir['route_dir'].unique()[0]
     stop_route_id_mask = ((stop_hour_df['route_dir'] == route_dir) &
                             (stop_hour_df['stop_name'] == stop_name))
     stop_hours = stop_hour_df[stop_route_id_mask]['stop_hours'].values[0].strip("[]").split(",")
     return stop_hours
-
-
 
 def get_stop_names(route_short_df, route_short_name, direction):
     route_dir_mask = ((route_short_df['route_short_name'] == route_short_name)
@@ -178,10 +176,58 @@ def index():
                                 )
 
 
-@app.route('/route')
+@app.route('/route', methods=['GET','POST'])
 def route():
 
 #    current_date = request.args.get("datepicker")
+
+    current_route_short_name = request.args.get("routeSelect")
+
+    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
+    directions = make_direction_list(route_short_df, current_route_short_name)
+
+
+
+
+    return render_template('charts.html',
+                                current_route_name=current_route_short_name,
+                                route_names=route_short_list,
+                                tomorrows_date=tomorrows_date,
+                                directions=directions
+                                )
+
+@app.route('/direction', methods=['GET', 'POST'])
+def direction():
+
+    current_route_short_name = request.args.get("routeSelect")
+
+    current_direction = request.args.get("directionSelect")
+
+    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
+    directions = make_direction_list(route_short_df, current_route_short_name)
+
+    if current_direction == directions[1]:
+        direction = 1
+        stop_names = get_stop_names(route_short_df,
+                                    current_route_short_name, direction)
+    else:
+        direction = 0
+        stop_names = get_stop_names(route_short_df,
+                                    current_route_short_name, direction)
+
+    return render_template('charts.html',
+                                current_route_name=current_route_short_name,
+                                route_names=route_short_list,
+                                tomorrows_date=tomorrows_date,
+                                current_direction=current_direction,
+                                stop_names=stop_names,
+                                directions=directions
+                                )
+
+@app.route('/stop')
+def stop():
 
     current_route_short_name = request.args.get("routeSelect")
 
@@ -202,17 +248,11 @@ def route():
         stop_names = get_stop_names(route_short_df,
                                     current_route_short_name, direction)
 
-    if current_stop_name != None:
-        stop_hours = get_stop_hours(stop_hour_df, route_short_df,
-                                    current_route_short_name,
-                                    current_stop_name, direction)
-        stop_hour_arr = np.array(stop_hours)
-        stop_hours = sorted(stop_hour_arr, reverse=True)
-    else:
-        stop_hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-                    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
-
-
+    stop_hours = get_stop_hours(stop_hour_df, route_short_df,
+                                current_route_short_name,
+                                current_stop_name, direction)
+    stop_hour_arr = np.array(stop_hours)
+    hours = sorted(stop_hour_arr, reverse=True)
 
     return render_template('charts.html',
                                 current_route_name=current_route_short_name,
@@ -220,9 +260,10 @@ def route():
                                 tomorrows_date=tomorrows_date,
                                 current_direction=current_direction,
                                 stop_names=stop_names,
-                                hours=stop_hours,
-                                directions=directions
+                                directions=directions,
+                                hours=hours
                                 )
+
 
 
 @app.route('/predict', methods=['POST'])

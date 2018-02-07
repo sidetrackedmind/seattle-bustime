@@ -26,6 +26,18 @@
 
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
+  <script>
+  function direction_change(){
+
+      document.forms['user_input_form'].action = '/direction';
+      document.forms['user_input_form'].submit();
+  }
+  function stop_change(){
+
+      document.forms['user_input_form'].action = '/stop';
+      document.forms['user_input_form'].submit();
+  }
+  </script>
 
 
 
@@ -60,10 +72,10 @@
         <div class="user_inputs" align="center">
 
             <tr>
-                <form action="/route">
+                <form name="user_input_form" action="/route"  >
                 <td>Route</td>
                 <td>
-                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange=submit()>
+                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="submit()">
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
                   			<option name="route" value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
@@ -75,7 +87,7 @@
                 </td>
                 <td>Direction</td>
                 <td>
-                  <select name="directionSelect" id="directionSelect" class="selectDirection" onchange=submit()>
+                  <select name="directionSelect" id="directionSelect" class="selectDirection" onchange="direction_change();">
                       {% for direction in directions %}
                   		{% if direction == current_direction %}
                   			<option name="direction" value="{{ current_direction }}" selected="selected">{{ current_direction }}</option>
@@ -153,6 +165,8 @@
       </div>
     </div>
     <script>
+
+
 
     predict = function(){
 	  user_route = $("#routeSelect").val()
