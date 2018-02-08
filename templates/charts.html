@@ -52,7 +52,28 @@
 	}
     #mapid { height: 350px; width: 50%; float: left;}
 
-    .img { height: 350px; width: 50%}
+    img { margin-left: auto;
+    margin-right: auto;}
+
+
+    .column {
+    float: left;
+    width: 50%;
+    padding: 10px;
+}
+
+
+    .row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+    .description {
+        padding-right:35px;
+        padding-left: 35px;
+        text-align: center;
+
+    }
 
   </style>
 </head>
@@ -60,7 +81,7 @@
 <body class="fixed-nav sticky-footer bg-dark" id="page-top">
   <!-- Navigation-->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
-    <a class="navbar-brand" href="index.html">BUS WTF - Wait Time Forecast - Seattle</a>
+    <a class="navbar-brand" href="index.html">Seattle BUS WTF - BUS WTF - Wait Time Forecast</a>
     <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -71,7 +92,7 @@
       <div class="card mb-3">
         <div class="card-header">
 
-          <i class="fa fa-area-chart"></i> </div>
+           </div>
         <div class="user_inputs" align="center">
 
             <tr>
@@ -81,9 +102,9 @@
                   <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="submit()">
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
-                  			<option name="route" value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
+                  			<option value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
                   		{% else %}
-                  			<option name="route" value="{{ route }}">{{ route }}</option>
+                  			<option value="{{ route }}">{{ route }}</option>
                   		{% endif %}
                   	{% endfor %}
                   </select>
@@ -129,10 +150,25 @@
                 <h3 id="prediction"></h3><h3 id="confidence_int"></h3>
             </tr>
         </div>
-        <div><img height=350px width="50%" align="left" src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-01.png">
-        <img height=350px width="50%" align="right" src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-02.png">
+        <div class="row">
+        <div class="col-md-6" >
+            <h2 align="center">Histogram of Bus Arrival Times</h2>
+            <p class="description">This is a plot of the frequency of a typical stop's arrival times.
+                            The dark area shows the span of times that fall within 90% of all arrivals
+                            for a given stop. </p>
+            <img height=250px width=450px src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-01.png">
+                        </div>
+        <div class="col-md-6" >
+            <h2 align="center">Arrival Time Prediction</h2>
+            <p class="description" >Once you select a route, direction, stop and time, the prediction will appear along within
+                a bar illustrating the lower and upper bound of 90% of all arrivals at the particular stop
+                at that time.</p>
+            <img height=175px width=450px src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-02.png">
+                        </div>
         </div>
-        <div id="chart">  </div>
+        <div class="row">
+
+        <div class="col-md-6" id="chart">  </div>
       </div>
       <!-- Prediction Space-->
       <hr>
@@ -217,11 +253,11 @@
         var margin = {
             top: 15,
             right: 100,
-            bottom: 30,
+            bottom: 50,
             left: 100
         };
         var width = $(window).width() - margin.left - margin.right,
-            height = 150 - margin.top - margin.bottom;
+            height = 200 - margin.top - margin.bottom;
 
         var svg = d3.select("#chart").append("svg")
                     .attr("width", width + margin.left + margin.right)
@@ -247,7 +283,7 @@
             .attr("transform", "translate(" + (margin.left + (width/2)) + " ," +
                                         (height + margin.top + (height/4) )+ ")")
             .style("text-anchor", "middle")
-            .text("Minutes");
+            .text("Deviation From Schedule (Minutes)");
 
         var bars = svg.selectAll(".bar")
             .data(data)

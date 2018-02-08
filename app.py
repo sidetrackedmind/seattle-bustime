@@ -120,7 +120,7 @@ def get_stop_hours(stop_hour_df, route_short_df, route_short_name,
     for stop in stop_hours:
         stop = stop.strip()
         strip_hours.append(stop)
-    sorted_hours = sorted(np.array(strip_hours).astype(int), reverse=True)
+    sorted_hours = sorted(np.array(strip_hours).astype(int))
 
     return sorted_hours
 
@@ -201,8 +201,8 @@ def route():
 
 
     return render_template('charts.html',
-                                route_names=route_short_list,
-                                current_route_name=current_route_name,
+                                route_names=sorted_routes,
+                                current_route_name=int(current_route_name),
                                 current_date=current_date,
                                 current_direction=current_direction,
                                 directions=directions)
@@ -228,8 +228,8 @@ def direction():
                                     current_route_name, direction)
 
     return render_template('charts.html',
-                                route_names=route_short_list,
-                                current_route_name=current_route_name,
+                                route_names=sorted_routes,
+                                current_route_name=int(current_route_name),
                                 current_date=current_date,
                                 current_direction=current_direction,
                                 stop_names=stop_names,
@@ -260,15 +260,13 @@ def stop():
         stop_names = get_stop_names(route_short_df,
                                     current_route_name, direction)
 
-    stop_hours = get_stop_hours(stop_hour_df, route_short_df,
+    hours = get_stop_hours(stop_hour_df, route_short_df,
                                 current_route_name,
                                 current_stop_name, direction)
-    stop_hour_arr = np.array(stop_hours)
-    hours = sorted(stop_hour_arr, reverse=True)
 
     return render_template('charts.html',
-                                route_names=route_short_list,
-                                current_route_name=current_route_name,
+                                route_names=sorted_routes,
+                                current_route_name=int(current_route_name),
                                 current_date=current_date,
                                 current_direction=current_direction,
                                 stop_names=stop_names,
@@ -337,4 +335,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', threaded=True, debug=False)
+    app.run(host='0.0.0.0', threaded=True, debug=True)
