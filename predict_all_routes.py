@@ -14,7 +14,8 @@ import multiprocessing
 
 
 def predict_all_routes():
-    '''This is a function to process user input into the model format
+    '''This is a function to predict all unique routes and directions
+    in the King County Metro system
     INPUT
     -------
 
@@ -38,6 +39,16 @@ def predict_all_routes():
 
 def predict_one_route(route_dir):
     '''
+    This is a function to predict all unique routes and directions
+    in the King County Metro system
+    INPUT
+    -------
+    route_dir = unique route and direction
+    OUTPUT
+    -------
+    None
+    update pred_metrics table with prediction metrics for
+    a specific route and direction
     '''
     db_name = os.environ["RDS_NAME"]
     user = os.environ["RDS_USER"]
@@ -149,6 +160,17 @@ def build_output_df_row(route_dir_stop, route_dir, time_pct, stop_sequence,
                         stop_name, stop_lat, stop_lon, month, day, hour,
                         dow, delay, prediction):
 
+    '''
+    INPUT
+    ------
+    route_dir information
+
+    OUTPUT
+    -------
+    pandas dataframe row containing route_dir information along with
+    the predicted arrival time
+    '''
+
     output_cols = ['route_dir_stop','route_dir','time_pct','stop_sequence',
                     'shape_dist_traveled', 'trip_id', 'vehicle_id', 'arrival_time',
                     'stop_name', 'stop_lat', 'stop_lon','month', 'day',
@@ -256,6 +278,9 @@ def get_route_dir_not_predicted():
     return route_dir_to_pred
 
 def write_to_table(df, db_engine, table_name, if_exists='fail'):
+    '''
+    function to write a pandas dataframe to RDS table
+    '''
     string_data_io = io.StringIO()
     df.to_csv(string_data_io, sep='|', index=False)
     pd_sql_engine = pd.io.sql.pandasSQL_builder(db_engine)
