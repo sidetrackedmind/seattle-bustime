@@ -8,6 +8,16 @@ from sqlalchemy import create_engine
 
 def route_metrics():
 
+    '''
+    INPUT
+    ------
+    NONE
+
+    OUTPUT
+    -------
+    updated RDS table with route metrics for each route_dir
+    '''
+
     db_name = os.environ["RDS_NAME"]
     user = os.environ["RDS_USER"]
     key = os.environ["RDS_KEY"]
@@ -241,6 +251,14 @@ def get_route_metrics(route_short_name, stop_name, direction):
 def build_hour_stop_stats_row(route_id, stop_id, stop_name, week_df,
                                 direction_id, route_dir, is_week=True):
     '''
+    INPUT
+    -------
+    stop information
+
+    OUTPUT
+    -------
+    hours_week_df - dataframe containing 90 percentile statistics for
+    each unique hour for a particular stop
     '''
     user_stop = week_df['stop_name'] == stop_name
     stop_hours = list(week_df[user_stop]['hour'].unique())
@@ -272,6 +290,15 @@ def build_hour_stop_stats_row(route_id, stop_id, stop_name, week_df,
     return hours_week_df
 
 def write_to_table(df, db_engine, table_name, if_exists='fail'):
+    '''
+    function to write pandas df to RDS table
+    INPUT
+    ------
+    df - dataframe
+    db_engine
+    table_name - output table name
+    if_exists - what to do if the table already exists
+    '''
     string_data_io = io.StringIO()
     df.to_csv(string_data_io, sep='|', index=False)
     pd_sql_engine = pd.io.sql.pandasSQL_builder(db_engine)
@@ -288,6 +315,13 @@ def write_to_table(df, db_engine, table_name, if_exists='fail'):
     connection.close()
 
 def update_status_database(conn, route_dir):
+
+    '''
+    OUTPUT
+    -------
+    update route_metric_status table to mark
+    specfic route_dir updated column as "true"
+    '''
     cur = conn.cursor()
     print(route_dir)
     cur.execute("UPDATE route_metric_status "
@@ -306,6 +340,10 @@ def column_list_to_string(list):
     return column_str
 
 def percentile(n):
+    '''
+    quick numpy percentile function to apply to a pandas dataframe
+    in order to create percentile columns
+    '''
     def percentile_(x):
         return np.percentile(x, n)/60
     percentile_.__name__ = 'percentile_%s' % n
