@@ -10,10 +10,10 @@ import pickle
 import multiprocessing
 
 def train_all_routes():
-    '''This is a function to process user input into the model format
+    '''This is a function to train all routes
     INPUT
     -------
-
+    NONE
 
     OUTPUT
     -------
@@ -168,11 +168,10 @@ def build_filename(route_id, direction):
 
 def get_params_from_db(conn, route_dir):
     '''
-    getting best_alpha and best_depth from model_params table
+    getting best_depth from model_params table
 
     OUTPUT
     -------
-    best_alpha - best alpha value for that route based on CV
     best_depth - best depth value for this route based on CV
     '''
     cur = conn.cursor()
@@ -189,7 +188,7 @@ def get_params_from_db(conn, route_dir):
 
 def trained_check(conn, route_dir):
     '''
-    checking trainging database
+    checking training database
     if the route_dir has been trained return True
     else return False
 
@@ -234,6 +233,10 @@ def cross_val_check(conn, route_dir):
 
 def put_pickle_model(fit_model, filename):
         '''
+        INPUT
+        ------
+        fit_model - fit gradient boosted regressor
+        filename - location to put the pickle
 
         Output:
         -------
@@ -253,6 +256,12 @@ def put_pickle_model(fit_model, filename):
                         Body=open('model.pkl', 'rb'), Key=filename)
 
 def update_model_database(conn, all_columns, pickle_path, route_dir):
+    '''
+    OUTPUT
+    -------
+    update the models table to mark the route_dir
+    trained column as 'true'
+    '''
     cur = conn.cursor()
 
     cur.execute("UPDATE models "
@@ -264,6 +273,12 @@ def update_model_database(conn, all_columns, pickle_path, route_dir):
     conn.commit()
 
 def mark_as_finished(conn, route_dir):
+    '''
+    OUTPUT
+    -------
+    udpate model table to mark route_dir
+    processed column as "finished"
+    '''
     cur = conn.cursor()
 
     cur.execute("UPDATE models "
@@ -274,6 +289,10 @@ def mark_as_finished(conn, route_dir):
 
 
 def find_next_route_dir(conn):
+    '''
+    Search for route_dir where processed = 'not_started'
+
+    '''
     cur = conn.cursor()
 
     try:
@@ -294,6 +313,9 @@ def find_next_route_dir(conn):
     return call_status, route_dir
 
 def route_in_progress(conn, route_dir):
+    '''
+    mark specific route_dir as "in_progress"
+    '''
     cur = conn.cursor()
 
     cur.execute("UPDATE models "
