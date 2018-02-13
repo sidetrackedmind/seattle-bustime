@@ -27,6 +27,13 @@
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
   <script>
+
+  function route_change(){
+
+      document.forms['user_input_form'].action = '/route';
+      document.forms['user_input_form'].submit();
+  }
+
   function direction_change(){
 
       document.forms['user_input_form'].action = '/direction';
@@ -122,10 +129,10 @@
         <div class="user_inputs" align="center">
 
             <tr>
-                <form name="user_input_form" action="/route"  >
+                <form name="user_input_form" >
                 <td>Route</td>
                 <td>
-                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="submit()">
+                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="route_change()">
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
                   			<option value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
