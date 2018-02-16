@@ -43,6 +43,7 @@
 
       document.forms['user_input_form'].action = '/stop';
       document.forms['user_input_form'].submit();
+
   }
   </script>
 
@@ -57,7 +58,7 @@
     .hidden {
 	  display: none;
 	}
-    #mapid { height: 350px; width: 50%; float: left;}
+    #mapid { height: 350px; width: 100%; float: left;}
 
     img { display:block;
         margin: auto;}
@@ -124,6 +125,8 @@
       <div class="card mb-3">
         <div class="card-header">
 
+            <h3 align="center">Select a Route, Direction, Stop, Date and Hour of the Day then hit Submit!</h3>
+
            </div>
 
         <div class="user_inputs" align="center">
@@ -132,7 +135,7 @@
                 <form name="user_input_form" >
                 <td>Route</td>
                 <td>
-                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="route_change()">
+                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="route_change();route_zoom()">
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
                   			<option value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
@@ -144,7 +147,7 @@
                 </td>
                 <td>Direction</td>
                 <td>
-                  <select name="directionSelect" id="directionSelect" class="selectDirection" onchange="direction_change();">
+                  <select name="directionSelect" id="directionSelect" class="selectDirection" onchange="direction_change();route_zoom()">
                       {% for direction in directions %}
                   		{% if direction == current_direction %}
                   			<option name="direction" value="{{ current_direction }}" selected="selected">{{ current_direction }}</option>
@@ -154,8 +157,10 @@
                   	{% endfor %}
                   </select>
                 </td>
+            </tr>
+            <tr>
                 <td>Stop</td>
-                <select name="stopSelect" id="stopSelect" class="selectStop" onchange="stop_change()">
+                <select name="stopSelect" id="stopSelect" class="selectStop" onchange="stop_change();stop_zoom()">
                     {% for stop in stop_names %}
                       {% if stop == current_stop_name %}
                           <option name="stop" value="{{ stop }}" selected="selected">{{ stop }}</option>
@@ -164,6 +169,8 @@
                       {% endif %}
                     {% endfor %}
                 </select>
+            </tr>
+            <tr>
                 <td>Date</td>
                 <input id="dateSelect" name="dateSelect" type="date" value="{{ current_date }}"/>
                 <td>Hour</td>
@@ -181,6 +188,7 @@
                 <button onclick="predict()" class="btn btn-default">Submit</button>
                 </div>
             </tr>
+        </div>
         </section>
             <div class="row">
 
@@ -189,19 +197,19 @@
             <tr>
                 <h3 id="prediction"></h3><h3 id="confidence_int"></h3>
             </tr>
-        </div>
         <div class="row">
         <div class="col-md-6" >
             <h2 align="center">Histogram of Bus Arrival Times</h2>
-            <p class="description">This is a plot of the frequency of a typical stop's arrival times.
-                            The dark area shows the span of times that fall within 90% of all arrivals
-                            for a given stop. </p>
+            <p class="description">This histogram shows the range of arrival times for a generic bus stop.
+                            The dark area contains 90% of all arrival times. </p>
             <img width=100% src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-01.png">
                         </div>
         <div class="col-md-6" >
             <h2 align="center">Arrival Time Prediction</h2>
-            <p class="description" >Once you select a route, direction, stop and time, the prediction will appear along within
-                a bar illustrating the lower and upper bound of 90% of all arrivals at that time and stop location.
+            <p class="description" >When you hit submit, the model will predict a bus arrival time. The time will appear as a red bar.
+                The time indicates a "predicted deviation from schedule". If the time is positive, the bus is expected to be late.
+                If the time is negative, the bus is predicted to be early. In addition to the prediction, a horizontal bar will appear. The width of the bar illustrates
+                 the range of arrival times for your selected stop at the selected hour.
                 </p>
             <img width=100% src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-02.png">
                         </div>
@@ -209,10 +217,12 @@
 
       <!-- Prediction Space-->
       <hr>
-
       <!-- Map Area-->
-      <!--<div id="mapid"></div> -->
+      <div class="col-md-4" >
+      <div id="mapid"></div>
+      </div>
   </div>
+</div>
 </div>
     <footer class="sticky-footer">
       <div class="container">
@@ -374,20 +384,56 @@
 
                     }
     </script>
+    <!--
+    <script src="static/js/all_route_lines.js"></script>
+    <script src="static/js/KCM_stop_shapes.js"></script>
+    <script src="static/js/map_script.js"></script>
     <script>
-    var mymap = L.map('mapid').setView([47.60, -122.32], 13);
-    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-    maxZoom: 18,
-    id: 'mapbox.streets',
-    accessToken: 'pk.eyJ1IjoiYm1hbG5vciIsImEiOiJjamQ0Mmd4NmwwZHNyMzNyenZ5eGZ2YjFuIn0.OdTGjMcYBOji2YGX3hvmjA'
-    }).addTo(mymap);
+    var selected_stop_shape = {{selected_stop_id}}
+    var selected_shape = {{selected_route_shape}}
+    function route_names (feature, layer) {
+        layer.bindPopup(feature.properties.group);
+    }
+
+    function routeFilter (feature) {
+        if (feature.properties.group == selected_shape ) return true
+    }
+
+    var selected_routes = L.geoJson(all_route_lines,
+        {filter: routeFilter}).addTo(mymap);
+
+    mymap.fitBounds(selected_routes.getBounds(), {
+            //padding: [50,50]
+    });
+
+
+    function stopFilter (feature) {
+        if (feature.properties.stop_id == selected_stop_shape ) return true
+    }
+
+    var selected_stop = L.geoJson(KCM_stop_shapes,
+        {filter: stopFilter}).addTo(mymap);
+
+    mymap.fitBounds(selected_stop.getBounds(), {
+            padding: [10,10]
+    });
     </script>
     <script>
 
 
 
+
+    //L.geoJSON(all_route_lines, {
+    //    onEachFeature: route_names
+    //}).addTo(mymap);
     </script>
+    -->
+    <script>
+
+
+
+    </script>
+
     <!-- Bootstrap core JavaScript-->
     <script src="static/vendor/jquery/jquery.min.js"></script>
     <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

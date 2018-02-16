@@ -56,6 +56,18 @@ cut_route_list = [route for route in route_short_list if route not in excluded_l
 route_arr = np.array(cut_route_list).astype(int)
 sorted_routes = sorted(route_arr)
 
+conn.rollback()
+cur = conn.cursor()
+shape_query_selections = ['route_dir','route_id','direction_id',
+                    'route_short_name','shape_id']
+query_string = column_list_to_string(shape_query_selections)
+
+cur.execute('''SELECT {}
+            FROM route_shape'''.format(query_string)
+                )
+route_shape_list = cur.fetchall()
+route_shape_df = pd.DataFrame(route_shape_list,
+                        columns=shape_query_selections)
 
 conn.rollback()
 cur = conn.cursor()
@@ -134,6 +146,24 @@ def get_stop_names(route_short_df, route_short_name, direction):
 
     return sorted_stop_names
 
+def get_route_shape(route_shape_df, route_short_name):
+    route_mask = route_shape_df['route_short_name'] == route_short_name
+    route_select_df = route_shape_df[route_mask]
+    possible_shapes = list(route_select_df['shape_id'].unique())
+    return possible_shapes[0]
+
+def get_stop_id(route_short_df, current_stop_name):
+    stop_mask = route_short_df['stop_name'] == current_stop_name
+    stop_id = route_short_df[stop_mask]['stop_id'].values[0]
+    return stop_id
+
+def get_route_dir_shape(route_shape_df, route_short_name, direction_id):
+    route_dir_mask = ((route_shape_df['route_short_name'] == route_short_name)
+                    & (route_shape_df['direction_id'] == direction_id))
+    route_select_df = route_shape_df[route_dir_mask]
+    possible_shapes = list(route_select_df['shape_id'].unique())
+    return possible_shapes[0]
+
 def make_direction_list(route_short_df, short_name):
     direction_list = list(route_short_df['direction_id'].unique())
     default_direction = "Select a direction"
@@ -193,6 +223,8 @@ def route():
 
     directions = make_direction_list(route_short_df, current_route_name)
 
+    selected_route_shape = get_route_shape(route_shape_df, current_route_name)
+
     current_direction = "Select a direction"
 
 
@@ -205,6 +237,7 @@ def route():
                                 current_route_name=int(current_route_name),
                                 current_date=current_date,
                                 current_direction=current_direction,
+                                selected_route_shape=selected_route_shape,
                                 directions=directions)
 
 @app.route('/direction', methods=['GET', 'POST'])
@@ -226,6 +259,7 @@ def direction():
         direction = 0
         stop_names = get_stop_names(route_short_df,
                                     current_route_name, direction)
+    selected_route_shape = get_route_dir_shape(route_shape_df, current_route_name, direction)
 
     return render_template('charts.html',
                                 route_names=sorted_routes,
@@ -233,6 +267,7 @@ def direction():
                                 current_date=current_date,
                                 current_direction=current_direction,
                                 stop_names=stop_names,
+                                selected_route_shape=selected_route_shape,
                                 directions=directions
                                 )
 
@@ -264,6 +299,13 @@ def stop():
                                 current_route_name,
                                 current_stop_name, direction)
 
+    selected_route_shape = get_route_dir_shape(route_shape_df,
+                                        current_route_name, direction)
+
+    selected_stop_id = get_stop_id(route_short_df,
+                                current_stop_name)
+    print(selected_stop_id)
+
     return render_template('charts.html',
                                 route_names=sorted_routes,
                                 current_route_name=int(current_route_name),
@@ -271,7 +313,9 @@ def stop():
                                 current_direction=current_direction,
                                 stop_names=stop_names,
                                 directions=directions,
+                                selected_route_shape=selected_route_shape,
                                 current_stop_name=current_stop_name,
+                                selected_stop_id=int(selected_stop_id),
                                 hours=hours
                                 )
 
