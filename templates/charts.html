@@ -280,9 +280,9 @@
                         </div>
         <div class="col-md-6" >
             <h2 align="center">Arrival Time Prediction</h2>
-            <p class="description" >When you hit submit, the model will predict a bus arrival time. The time will appear as a red bar.
-                The time indicates a "predicted deviation from schedule". If the time is positive, the bus is expected to be late.
-                If the time is negative, the bus is predicted to be early. In addition to the prediction, a horizontal bar will appear. The width of the bar illustrates
+            <p class="description" >When you hit submit, the model will predict a bus arrival deviation.
+                The prediction will appear as a red bar. The time indicates a "predicted deviation from schedule". A zero indicates the bus is predicted to be on time.
+                If the time is positive, the bus is expected to be late. If the time is negative, the bus is predicted to be early. In addition to the prediction, a horizontal bar will appear. The width of the bar illustrates
                  the range of arrival times for your selected stop at the selected hour. The bar is a visual representation of the
                  darker area of the histogram.
                 </p>
@@ -324,6 +324,16 @@
         </div>
       </div>
     </div>
+    <script>
+    var mymap = L.map('mapid').setView([47.60, -122.32], 13);
+
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    maxZoom: 18,
+    id: 'mapbox.streets',
+    accessToken: 'pk.eyJ1IjoiYm1hbG5vciIsImEiOiJjamQ0Mmd4NmwwZHNyMzNyenZ5eGZ2YjFuIn0.OdTGjMcYBOji2YGX3hvmjA'
+    }).addTo(mymap);
+    </script>
     <script>
 
 
@@ -467,16 +477,7 @@
     <script src="static/js/KCM_stop_shapes.js"></script>
     <script src="static/js/stop_routes.js"></script>
     <script src="static/js/stop_info.js"></script>
-    <script>
-    var mymap = L.map('mapid').setView([47.60, -122.32], 13);
 
-    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-    maxZoom: 18,
-    id: 'mapbox.streets',
-    accessToken: 'pk.eyJ1IjoiYm1hbG5vciIsImEiOiJjamQ0Mmd4NmwwZHNyMzNyenZ5eGZ2YjFuIn0.OdTGjMcYBOji2YGX3hvmjA'
-    }).addTo(mymap);
-    </script>
 
     <script>
     //var selected_stop_shape = {{selected_stop_id}}
@@ -574,10 +575,10 @@
 
 
     function clickFeature(e) {
+        //stop_internal(),
         selected_stops_layer.setStyle(defaultMarkerStyle);
         var justClicked = e.target;
         selected_map_stop = justClicked.feature.properties.stop_name;
-        stop_internal(),
         justClicked.setStyle(clickedMarkerStyle),
         //justClicked.bindPopup("<h3>" + selected_map_stop + "</h3>"),
         $("#selected_map_stop").empty(),
@@ -589,7 +590,11 @@
         layer.on(
             {
                 click: clickFeature
-
+            }
+        )
+        layer.on(
+            {
+                click: stop_internal
             }
         )
     }
