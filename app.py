@@ -149,8 +149,8 @@ def get_stop_names(route_short_df, route_short_name, direction):
 def get_route_shape(route_shape_df, route_short_name):
     route_mask = route_shape_df['route_short_name'] == route_short_name
     route_select_df = route_shape_df[route_mask]
-    possible_shapes = list(route_select_df['shape_id'].unique())
-    return possible_shapes[0]
+    possible_shapes = [int(i) for i in route_select_df['shape_id'].unique()]
+    return possible_shapes
 
 def get_stop_id(route_short_df, current_stop_name):
     stop_mask = route_short_df['stop_name'] == current_stop_name
@@ -161,12 +161,13 @@ def get_route_dir_shape(route_shape_df, route_short_name, direction_id):
     route_dir_mask = ((route_shape_df['route_short_name'] == route_short_name)
                     & (route_shape_df['direction_id'] == direction_id))
     route_select_df = route_shape_df[route_dir_mask]
-    possible_shapes = list(route_select_df['shape_id'].unique())
-    return possible_shapes[0]
+    possible_shapes = [int(i) for i in route_select_df['shape_id'].unique()]
+
+    return possible_shapes
 
 def make_direction_list(route_short_df, short_name):
     direction_list = list(route_short_df['direction_id'].unique())
-    default_direction = "Select a direction"
+    #default_direction = "Select a direction"
     if len(route_short_df['direction_id'].unique()) < 2:
         route_mask_dir1 = ((route_short_df['route_short_name'] == short_name)
                             & (route_short_df['direction_id'] == direction_list[0]))
@@ -174,7 +175,7 @@ def make_direction_list(route_short_df, short_name):
         sorted_route = select_route_dir1_df.sort_values(by='stop_sequence')
         num_stops = len(sorted_route) - 1
         last_stop = "TO "+str(sorted_route['stop_name'].iloc[num_stops])
-        directions = [last_stop, default_direction]
+        directions = [last_stop]
 
     else:
         route_mask_dir1 = ((route_short_df['route_short_name'] == short_name)
@@ -190,7 +191,7 @@ def make_direction_list(route_short_df, short_name):
         sorted_route_dir0 = select_route_dir0_df.sort_values(by='stop_sequence')
         num_stops = len(sorted_route_dir0) - 1
         last_stop_dir0 = "TO "+str(sorted_route_dir0['stop_name'].iloc[num_stops])
-        directions = [last_stop_dir0, last_stop_dir1, default_direction]
+        directions = [last_stop_dir0, last_stop_dir1]
     return directions
 
 
@@ -240,14 +241,41 @@ def route():
                                 selected_route_shape=selected_route_shape,
                                 directions=directions)
 
-@app.route('/direction', methods=['GET', 'POST'])
-def direction():
 
-    current_route_name = request.args.get("routeSelect")
 
-    current_direction = request.args.get("directionSelect")
+@app.route('/route_internal', methods=['POST'])
+def route_internal():
+    user_data = request.json
 
-    current_date = request.args.get("dateSelect")
+    print(user_data)
+
+    sorted_route_list = [int(i) for i in sorted_routes]
+
+    current_route_name = user_data['user_route']
+
+    current_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
+    directions = make_direction_list(route_short_df, current_route_name)
+
+    selected_route_shape = get_route_shape(route_shape_df, current_route_name)
+
+    print(selected_route_shape)
+
+    return jsonify({'directions':directions,
+                    'selected_route_shape':selected_route_shape
+                    })
+
+@app.route('/direction_internal', methods=['POST'])
+def direction_internal():
+    user_data = request.json
+
+    print(user_data)
+
+    sorted_route_list = [int(i) for i in sorted_routes]
+
+    current_route_name = user_data['user_route']
+
+    current_direction = user_data['user_direction']
 
     directions = make_direction_list(route_short_df, current_route_name)
 
@@ -259,30 +287,36 @@ def direction():
         direction = 0
         stop_names = get_stop_names(route_short_df,
                                     current_route_name, direction)
-    selected_route_shape = get_route_dir_shape(route_shape_df, current_route_name, direction)
 
-    return render_template('charts.html',
-                                route_names=sorted_routes,
-                                current_route_name=int(current_route_name),
-                                current_date=current_date,
-                                current_direction=current_direction,
-                                stop_names=stop_names,
-                                selected_route_shape=selected_route_shape,
-                                directions=directions
-                                )
+    selected_route_shape = get_route_dir_shape(route_shape_df,
+                                    current_route_name, direction)
 
-@app.route('/stop')
-def stop():
+    print(stop_names)
 
-    current_route_name = request.args.get("routeSelect")
+    return jsonify({'route_names': sorted_route_list,
+                    'current_route_name': current_route_name,
+                    'current_direction':current_direction,
+                    'direction_number':direction,
+                    'stop_names':stop_names,
+                    'selected_route_shape':selected_route_shape
+                    })
 
-    current_direction = request.args.get("directionSelect")
 
-    current_stop_name = request.args.get("stopSelect")
+@app.route('/stop_internal', methods=['POST'])
+def stop_internal():
+    user_data = request.json
 
-    current_date = request.args.get("dateSelect")
+    print(user_data)
 
-    tomorrows_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    sorted_route_list = [int(i) for i in sorted_routes]
+
+    current_route_name = user_data['user_route']
+
+    current_direction = user_data['user_direction']
+
+    current_stop_name = user_data['user_stop']
+
+    print(current_stop_name)
 
     directions = make_direction_list(route_short_df, current_route_name)
 
@@ -302,24 +336,13 @@ def stop():
     selected_route_shape = get_route_dir_shape(route_shape_df,
                                         current_route_name, direction)
 
-    selected_stop_id = get_stop_id(route_short_df,
-                                current_stop_name)
-    print(selected_stop_id)
-
-    return render_template('charts.html',
-                                route_names=sorted_routes,
-                                current_route_name=int(current_route_name),
-                                current_date=current_date,
-                                current_direction=current_direction,
-                                stop_names=stop_names,
-                                directions=directions,
-                                selected_route_shape=selected_route_shape,
-                                current_stop_name=current_stop_name,
-                                selected_stop_id=int(selected_stop_id),
-                                hours=hours
-                                )
+    hours_list = [int(i) for i in hours]
 
 
+    return jsonify({'directions': directions,
+                    'stop_names':stop_names,
+                    'selected_route_shape':selected_route_shape,
+                    'hours':hours_list})
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -379,4 +402,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', threaded=True, debug=False)
+    app.run(host='0.0.0.0', threaded=True, debug=True)

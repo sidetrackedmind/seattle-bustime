@@ -28,23 +28,106 @@
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
   <script>
 
-  function route_change(){
+  var selected_routes_layer;
+  var selected_stops_layer;
+  var selected_map_stop;
+  var direction_number = [];
+  var selected_route_shape = [];
 
-      document.forms['user_input_form'].action = '/route';
-      document.forms['user_input_form'].submit();
+  route_internal = function(){
+    user_route = $("#routeSelect").val()
+
+    user_info = {user_route : user_route}
+
+    $.post({
+      url: "/route_internal",
+      contentType: "application/json",
+      data: JSON.stringify(user_info),
+      success: function(result){
+      directions = result.directions
+      selected_route_shape = result.selected_route_shape
+      populate_dropdown("directionSelect", "select a direction", directions)
+      $("#selected_map_stop").empty();
+      if (typeof selected_routes_layer == 'undefined') {
+          route_shape_change()
+      }
+      else {
+          clearRouteShape()
+          route_shape_change()
+      }
+      if (typeof selected_stops_layer != 'undefined') {
+          clearStopShape()
+      }
+      }
+    });
   }
 
-  function direction_change(){
+  direction_internal = function(){
+    user_route = $("#routeSelect").val()
+    user_direction = $("#directionSelect").val()
 
-      document.forms['user_input_form'].action = '/direction';
-      document.forms['user_input_form'].submit();
+    user_info = {user_route : user_route, user_direction : user_direction}
+
+    $.post({
+      url: "/direction_internal",
+      contentType: "application/json",
+      data: JSON.stringify(user_info),
+      success: function(result){
+      route_names = result.route_names
+      current_route_name = result.current_route_name
+      current_direction = result.current_direction
+      direction_number = result.direction_number
+      stop_names = result.stop_names
+      selected_route_shape = result.selected_route_shape
+      //populate_dropdown("stopSelect", "select a stop", stop_names)
+      clearRouteShape()
+      route_shape_change()
+      if (typeof selected_stops_layer == 'undefined') {
+          stop_shape_change()
+      }
+      else {
+          clearStopShape()
+          stop_shape_change()
+      }
+      }
+    });
   }
-  function stop_change(){
 
-      document.forms['user_input_form'].action = '/stop';
-      document.forms['user_input_form'].submit();
+  stop_internal = function(){
+    user_route = $("#routeSelect").val()
+    user_direction = $("#directionSelect").val()
+    user_stop = $("#selected_map_stop").text()
 
+    user_info = {user_route : user_route, user_direction: user_direction,
+                user_stop: user_stop}
+
+    $.post({
+      url: "/stop_internal",
+      contentType: "application/json",
+      data: JSON.stringify(user_info),
+      success: function(result){
+          directions = result.directions
+          stop_names = result.stop_names
+          hours = result.hours
+          selected_route_shape = result.selected_route_shape
+          populate_dropdown("hourSelect", "hours", hours)
+
+
+      }
+    });
   }
+
+  function populate_dropdown(id, default_option, list) {
+                $("#"+id).empty()
+                $("#"+id).append($("<option />").attr("selected","selected").text(default_option));
+               $.each(list, function(key, value) {
+                   $("#"+id).append($("<option />").val(value).text(value));
+               });
+       }
+
+
+
+
   </script>
 
 
@@ -96,7 +179,7 @@
 <body class="fixed-nav sticky-footer bg-dark" id="page-top">
   <!-- Navigation-->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
-    <a class="navbar-brand" href="/">BUS WTF - Wait Time Forecast</a>
+    <a class="navbar-brand" href="/">BUS WTF - Wait Time Forecast - BETA</a>
     <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -125,17 +208,16 @@
       <div class="card mb-3">
         <div class="card-header">
 
-            <h3 align="center">Select a Route, Direction, Stop, Date and Hour of the Day then hit Submit!</h3>
+            <h4 align="center">Welcome to a Bus Wait Time Forecaster for King County Metro.</h4>
+                <h4 align="center">First, select a Route and Direction.</h4>
 
            </div>
 
         <div class="user_inputs" align="center">
-
-            <tr>
-                <form name="user_input_form" >
+                <tr>
                 <td>Route</td>
                 <td>
-                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="route_change();route_zoom()">
+                  <select name="routeSelect" id="routeSelect" class="selectRoute" onchange="route_internal()">
                       {% for route in route_names %}
                   		{% if route == current_route_name %}
                   			<option value="{{ current_route_name }}" selected="selected">{{ current_route_name }}</option>
@@ -147,47 +229,33 @@
                 </td>
                 <td>Direction</td>
                 <td>
-                  <select name="directionSelect" id="directionSelect" class="selectDirection" onchange="direction_change();route_zoom()">
-                      {% for direction in directions %}
-                  		{% if direction == current_direction %}
-                  			<option name="direction" value="{{ current_direction }}" selected="selected">{{ current_direction }}</option>
-                  		{% else %}
-                  			<option name="direction" value="{{ direction }}">{{ direction }}</option>
-                  		{% endif %}
-                  	{% endfor %}
+                  <select id="directionSelect" onchange="direction_internal()">
                   </select>
                 </td>
             </tr>
-            <tr>
-                <td>Stop</td>
-                <select name="stopSelect" id="stopSelect" class="selectStop" onchange="stop_change();stop_zoom()">
-                    {% for stop in stop_names %}
-                      {% if stop == current_stop_name %}
-                          <option name="stop" value="{{ stop }}" selected="selected">{{ stop }}</option>
-                      {% else %}
-                          <option name="stop" value="{{ stop }}">{{ stop }}</option>
-                      {% endif %}
-                    {% endfor %}
-                </select>
-            </tr>
-            <tr>
-                <td>Date</td>
-                <input id="dateSelect" name="dateSelect" type="date" value="{{ current_date }}"/>
-                <td>Hour</td>
-                <select name="hourSelect" id="hourSelect" class="selectStop" onchange="hour_change()">
-                    {% for hour in hours %}
-                      {% if hour == current_hour %}
-                          <option selected value="{{ hour }}" id="selected_hour">{{ hour }}</option>
-                      {% else %}
-                          <option value="{{ hour }}">{{ hour }}</option>
-                      {% endif %}
-                    {% endfor %}
-                </select>
-                </form>
-                <div class="btn-group" role="group" aria-label="...">
-                <button onclick="predict()" class="btn btn-default">Submit</button>
-                </div>
-            </tr>
+            <div class="card-header">
+            <h4>Then select your Stop from the map below.</h4>
+            </div>
+            <div id="selected_map_stop"></div>
+            </div>
+        <div class="map_box" align="center">
+        <!-- Map Area-->
+        <div class="col-md-8" >
+        <div id="mapid"></div>
+        <div>
+            <h4 align="center">Now select a Date, Hour and hit Submit!</h4>
+        </div>
+        <tr>
+            <td>Date</td>
+            <input id="dateSelect" name="dateSelect" type="date" value="{{ current_date }}"/>
+            <td>Hour</td>
+            <select id="hourSelect" >
+            </select>
+            <div class="btn-group" role="group" aria-label="...">
+            <button onclick="predict()" class="btn btn-default">Submit</button>
+            </div>
+        </tr>
+        </div>
         </div>
         </section>
             <div class="row">
@@ -200,8 +268,12 @@
         <div class="row">
         <div class="col-md-6" >
             <h2 align="center">Histogram of Bus Arrival Times</h2>
-            <p class="description">This histogram shows the range of arrival times for a generic bus stop.
-                            The dark area contains 90% of all arrival times. </p>
+            <p class="description">Imagine that you sat at a bus stop in Seattle
+                and you tracked the bus arrival compared to the scheduled time.
+                After logging all the arrivals, you could create a histogram, like below,
+                where the height of the bar represents the number of observations for each arrival time.
+                The histogram below is a representation of arrival times for a generic bus stop.
+                The darker area contains 90% of all arrival times. </p>
             <img width=100% src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-01.png">
                         </div>
         <div class="col-md-6" >
@@ -209,7 +281,8 @@
             <p class="description" >When you hit submit, the model will predict a bus arrival time. The time will appear as a red bar.
                 The time indicates a "predicted deviation from schedule". If the time is positive, the bus is expected to be late.
                 If the time is negative, the bus is predicted to be early. In addition to the prediction, a horizontal bar will appear. The width of the bar illustrates
-                 the range of arrival times for your selected stop at the selected hour.
+                 the range of arrival times for your selected stop at the selected hour. The bar is a visual representation of the
+                 darker area of the histogram.
                 </p>
             <img width=100% src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-02.png">
                         </div>
@@ -217,10 +290,6 @@
 
       <!-- Prediction Space-->
       <hr>
-      <!-- Map Area-->
-      <div class="col-md-4" >
-      <div id="mapid"></div>
-      </div>
   </div>
 </div>
 </div>
@@ -256,11 +325,10 @@
     <script>
 
 
-
     predict = function(){
 	  user_route = $("#routeSelect").val()
       user_direction = $("#directionSelect").val()
-	  user_stop = $("#stopSelect").val()
+	  user_stop = $("#selected_map_stop").text()
       user_hour = $("#hourSelect").val()
       user_date = $("#dateSelect").val()
 
@@ -292,6 +360,12 @@
     var prediction = prediction
     var conf_interval_10 = conf_interval_10
     var conf_interval_90 = conf_interval_90
+    if (isNaN(conf_interval_10)){
+        conf_interval_10 = 0
+    }
+    if (isNaN(conf_interval_90)){
+        conf_interval_10 = 0
+    }
     var data = [{
 			"name": "Vivek",
 			"value": 40
@@ -385,49 +459,164 @@
                     }
     </script>
     <!--
+    <script src="static/js/map_script.js"></script>
+    -->
     <script src="static/js/all_route_lines.js"></script>
     <script src="static/js/KCM_stop_shapes.js"></script>
-    <script src="static/js/map_script.js"></script>
+    <script src="static/js/stop_routes.js"></script>
+    <script src="static/js/stop_info.js"></script>
     <script>
-    var selected_stop_shape = {{selected_stop_id}}
-    var selected_shape = {{selected_route_shape}}
-    function route_names (feature, layer) {
-        layer.bindPopup(feature.properties.group);
+    var mymap = L.map('mapid').setView([47.60, -122.32], 13);
+
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    maxZoom: 18,
+    id: 'mapbox.streets',
+    accessToken: 'pk.eyJ1IjoiYm1hbG5vciIsImEiOiJjamQ0Mmd4NmwwZHNyMzNyenZ5eGZ2YjFuIn0.OdTGjMcYBOji2YGX3hvmjA'
+    }).addTo(mymap);
+    </script>
+
+    <script>
+    //var selected_stop_shape = {{selected_stop_id}}
+
+
+    if (direction_number.length < 1) {
+        direction_number = [0,1]
     }
 
-    function routeFilter (feature) {
-        if (feature.properties.group == selected_shape ) return true
+    var num_directions = direction_number.length;
+
+    clearRouteShape = function() {
+
+        selected_routes_layer.remove();
     }
 
-    var selected_routes = L.geoJson(all_route_lines,
+    clearStopShape = function() {
+
+        selected_stops_layer.remove();
+    }
+
+
+    route_shape_change = function() {
+
+        var num_shapes = selected_route_shape.length;
+
+
+    routeFilter = function(feature) {
+        for (var i = 0; i < num_shapes; i++) {
+            if (feature.properties.group == selected_route_shape[i] ) return true
+        }
+    }
+
+    selected_routes_layer = L.geoJson(all_route_lines,
         {filter: routeFilter}).addTo(mymap);
 
-    mymap.fitBounds(selected_routes.getBounds(), {
+    mymap.fitBounds(selected_routes_layer.getBounds(), {
             //padding: [50,50]
     });
+    };
+
+    stop_shape_change = function() {
+
+    var route_short_name = $("#routeSelect").val();
 
 
     function stopFilter (feature) {
-        if (feature.properties.stop_id == selected_stop_shape ) return true
+            if (feature.properties.route_short_name == route_short_name
+                && feature.properties.direction_id == direction_number) return true
     }
 
-    var selected_stop = L.geoJson(KCM_stop_shapes,
-        {filter: stopFilter}).addTo(mymap);
+    function zoomStop(e) {
+        var justClicked = e.target;
+        mymap.fitBounds(justClicked.getBounds());
+    }
 
-    mymap.fitBounds(selected_stop.getBounds(), {
-            padding: [10,10]
-    });
+    function stop_pop_names (e) {
+        var layer = e.target;
+        layer.bindPopup(feature.properties.stop_name);
+    }
+
+    function resetHighlights (e) {
+        selected_stops_layer.resetStyle(e.target);
+    }
+
+    function resetMapStyle() {
+        mymap.eachLayer(function(layer){
+            layer.setStyle(defaultMarkerStyle)});
+    }
+
+    function highlightStop (e) {
+        var layer = e.target;
+        layer.setStyle(clickedMarkerStyle);
+    }
+
+
+
+    var defaultMarkerStyle = {
+    radius: 5,
+    fillColor: "#E14040",
+    color: "#E14040",
+    weight: 1,
+    opacity: 0.8,
+    fillOpacity: 0.8
+    };
+
+    var clickedMarkerStyle = {
+    radius: 10,
+    fillColor: "#f49b42",
+    color: "#f49b42",
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 1
+    };
+
+
+    function clickFeature(e) {
+        selected_stops_layer.setStyle(defaultMarkerStyle);
+        var justClicked = e.target;
+        selected_map_stop = justClicked.feature.properties.stop_name;
+        stop_internal(),
+        justClicked.setStyle(clickedMarkerStyle),
+        //justClicked.bindPopup("<h3>" + selected_map_stop + "</h3>"),
+        $("#selected_map_stop").empty(),
+        $("#selected_map_stop").append($("<h4 />").val(selected_map_stop).text(selected_map_stop));
+        //mymap.fitBounds(justClicked.getBounds());
+    }
+
+    function stopOnEachFeature (feature, layer) {
+        layer.on(
+            {
+                click: clickFeature
+
+            }
+        )
+    }
+
+    function stopPointToLayer(feature, latlng) {
+        return L.circleMarker(latlng, defaultMarkerStyle);
+    }
+
+    selected_stops_layer = L.geoJson(stop_info,
+        {
+            pointToLayer: stopPointToLayer,
+            filter: stopFilter,
+            onEachFeature: stopOnEachFeature
+
+        }).addTo(mymap);
+
+    }
+
+
     </script>
     <script>
 
 
 
 
-    //L.geoJSON(all_route_lines, {
-    //    onEachFeature: route_names
-    //}).addTo(mymap);
+
+
     </script>
-    -->
+
     <script>
 
 
