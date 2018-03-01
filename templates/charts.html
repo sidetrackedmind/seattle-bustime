@@ -48,6 +48,7 @@
       selected_route_shape = result.selected_route_shape
       populate_dropdown("directionSelect", "select a direction", directions)
       $("#selected_map_stop").empty();
+      $("#hourSelect").empty();
       if (typeof selected_routes_layer == 'undefined') {
           route_shape_change()
       }
