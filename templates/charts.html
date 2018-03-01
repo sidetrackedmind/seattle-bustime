@@ -142,7 +142,7 @@
     .hidden {
 	  display: none;
 	}
-    #mapid { height: 350px; width: 100%; float: left;}
+    #mapid { height: 500px; width: 100%; float: left;}
 
     img { display:block;
         margin: auto;}
@@ -269,11 +269,12 @@
         <div class="row">
         <div class="col-md-6" >
             <h2 align="center">Histogram of Bus Arrival Times</h2>
-            <p class="description">Imagine that you sat at a bus stop in Seattle
-                and you tracked the bus arrival compared to the scheduled time.
-                After logging all the arrivals, you could create a histogram, like below,
-                where the height of the bar represents the number of observations for each arrival time.
-                The histogram below is a representation of arrival times for a generic bus stop.
+            <p class="description">Imagine you sat at a bus stop in Seattle
+                and recorded every bus' actual arrival time compared to the scheduled arrival time. We'll call that
+                value the "schedule deviation". After logging all the schedule deviations, over the course of a week or a month
+                you could create a histogram, like below.
+                The height of each bin represents the number of observations for each schedule deviation (e.g. 5 minutes early, 10 minutes late, etc).
+                This histogram is a generic representation of schedule deviations for a bus stop.
                 The darker area contains 90% of all arrival times. </p>
             <img width=100% src="https://s3-us-west-2.amazonaws.com/bus-wait-time-forecast/static/percentiles-01.png">
                         </div>
