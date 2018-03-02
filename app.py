@@ -55,6 +55,8 @@ excluded_list = ['A Line', 'B Line', 'C Line', 'D Line', 'E Line',
 cut_route_list = [route for route in route_short_list if route not in excluded_list]
 route_arr = np.array(cut_route_list).astype(int)
 sorted_routes = sorted(route_arr)
+sorted_route_list = [int(i) for i in sorted_routes]
+initial_route_list = ['Select a route'] + sorted_route_list
 
 conn.rollback()
 cur = conn.cursor()
@@ -210,7 +212,7 @@ def index():
     current_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     return render_template('charts.html',
                                 current_date=current_date,
-                                route_names=sorted_routes
+                                route_names=initial_route_list
                                 )
 
 
