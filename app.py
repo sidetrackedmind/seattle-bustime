@@ -56,7 +56,7 @@ cut_route_list = [route for route in route_short_list if route not in excluded_l
 route_arr = np.array(cut_route_list).astype(int)
 sorted_routes = sorted(route_arr)
 sorted_route_list = [int(i) for i in sorted_routes]
-initial_route_list = ['Select a route'] + sorted_route_list
+initial_route_list = ['Route'] + sorted_route_list
 
 conn.rollback()
 cur = conn.cursor()
