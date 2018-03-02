@@ -264,7 +264,9 @@ def route_internal():
     print(selected_route_shape)
 
     return jsonify({'directions':directions,
-                    'selected_route_shape':selected_route_shape
+                    'selected_route_shape':selected_route_shape,
+                    'route_names':sorted_route_list,
+                    'current_route_name':current_route_name
                     })
 
 @app.route('/direction_internal', methods=['POST'])

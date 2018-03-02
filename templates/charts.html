@@ -46,7 +46,10 @@
       success: function(result){
       directions = result.directions
       selected_route_shape = result.selected_route_shape
+      //route_names = result.route_names
+      //current_route_name = result.current_route_name
       populate_dropdown("directionSelect", "select a direction", directions)
+      //populate_dropdown("routeSelect", current_route_name, route_names)
       $("#selected_map_stop").empty();
       $("#hourSelect").empty();
       if (typeof selected_routes_layer == 'undefined') {
