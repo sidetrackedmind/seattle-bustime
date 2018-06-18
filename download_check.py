@@ -115,8 +115,8 @@ def position_check(position_db, data_date):
     output_list = ['number of rows: ']
 
     output_str = (
-    "{}{}\n{}{}\n{}{}\n{}{}\n\
-    ".format(output_list[0], num_rows,
+    "{}{}\n\
+    ".format(output_list[0], num_rows
             ))
 
     with open(file_path, "a") as f:
@@ -142,8 +142,8 @@ def position_post_clean_check(position_db, data_date):
     output_list = ['number of rows: ']
 
     output_str = (
-    "{}{}\n{}{}\n{}{}\n{}{}\n\
-    ".format(output_list[0], num_rows,
+    "{}{}\n\
+    ".format(output_list[0], num_rows
             ))
 
     with open(file_path, "a") as f:
