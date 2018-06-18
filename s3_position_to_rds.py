@@ -72,7 +72,7 @@ def s3_updates_to_rds(year, month, day_list):
 
         day_position_clean_db = clean_position_db(day_position_db)
 
-        download_check.position_post_clean_check(update_db,
+        download_check.position_post_clean_check(day_position_clean_db,
                                                     '{}/{}/{}'.format(
                                                     year, month, day))
 
