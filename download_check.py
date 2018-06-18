@@ -97,3 +97,57 @@ def update_check_post_pipeline(update_db, data_date):
         f.write("\n")
         f.write(output_str)
         f.write("\n")
+
+def position_check(position_db, data_date):
+    '''
+    INPUT
+    ------
+    one day's worth of downloaded pb files turned into a pandas db
+
+
+    OUTPUT
+    -------
+    print out of # rows - i.e. unique vehicle observations
+
+    '''
+    file_path = './position_data_dump_tracker.txt'
+    num_rows = len(position_db)
+    output_list = ['number of rows: ']
+
+    output_str = (
+    "{}{}\n{}{}\n{}{}\n{}{}\n\
+    ".format(output_list[0], num_rows,
+            ))
+
+    with open(file_path, "a") as f:
+        f.write(data_date+" position_pre-pipeline")
+        f.write("\n")
+        f.write(output_str)
+        f.write("\n")
+
+def position_post_clean_check(position_db, data_date):
+    '''
+    INPUT
+    ------
+    one day's worth of downloaded pb files turned into a pandas db
+
+
+    OUTPUT
+    -------
+    print out of # rows - i.e. unique vehicle observations
+
+    '''
+    file_path = './position_data_dump_tracker.txt'
+    num_rows = len(position_db)
+    output_list = ['number of rows: ']
+
+    output_str = (
+    "{}{}\n{}{}\n{}{}\n{}{}\n\
+    ".format(output_list[0], num_rows,
+            ))
+
+    with open(file_path, "a") as f:
+        f.write(data_date+" position_post-clean")
+        f.write("\n")
+        f.write(output_str)
+        f.write("\n")

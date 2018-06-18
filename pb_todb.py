@@ -7,6 +7,8 @@ import re
 import pandas as pd
 import numpy as np
 
+#schedule_df = pd.read_csv('March2017_gtfs/full_gtfs.csv', index_col=0)
+
 def make_update_db_from_day(generic_path):
     '''
     INPUT
@@ -79,16 +81,17 @@ def make_position_db_from_day(generic_path):
     dirname = generic_path
     folder_list = [f for f in os.listdir(dirname)]
     for folder in folder_list:
-        folder_path = os.path.join(dirname,folder)
-        all_subfiles_list = [f for f in os.listdir(folder_path)]
-        current_position_list = list(filter(lambda x: 'position' in x,
-                                        all_subfiles_list))
-        vehicle_list, bad_vehicle_header_list = make_vehicle_list(current_position_list, folder_path)
-        day_vehicle_list.append(vehicle_list)
-        day_bad_vehicle_header_list.append(bad_vehicle_header_list)
-        print("completed {} hour vehicle extraction \
-                {} bad vehicle headers".format(folder,
-                len(bad_vehicle_header_list)))
+        if not folder.startswith("."):
+            folder_path = os.path.join(dirname,folder)
+            all_subfiles_list = [f for f in os.listdir(folder_path)]
+            current_position_list = list(filter(lambda x: 'position' in x,
+                                            all_subfiles_list))
+            vehicle_list, bad_vehicle_header_list = make_vehicle_list(current_position_list, folder_path)
+            day_vehicle_list.append(vehicle_list)
+            day_bad_vehicle_header_list.append(bad_vehicle_header_list)
+            print("completed {} hour vehicle extraction \
+                    {} bad vehicle headers".format(folder,
+                    len(bad_vehicle_header_list)))
     #make database
     day_position_db = make_position_pandas(day_vehicle_list)
     return day_position_db
@@ -129,17 +132,27 @@ def make_vehicle_list(pb_file_list, folder_path):
                 vehicle_dict = {}
                 j_in = json.dumps(dict_obj['entity'][vehicles_idx])
                 j_out = json.loads(j_in)
-                if 'position' in j_out['vehicle']:
+                if 'position' in j_out['vehicle'] and 'trip' in j_out['vehicle']:
                     vehicle_dict['vehicle_id'] = j_out['vehicle']['vehicle']['id']
                     vehicle_dict['timestamp'] = j_out['vehicle']['timestamp']
+                    vehicle_dict['trip_id'] = j_out['vehicle']['trip']['tripId']
+                    vehicle_dict['route_id'] = j_out['vehicle']['trip']['routeId']
                     vehicle_dict['vehicle_lat'] = j_out['vehicle']['position']['latitude']
                     vehicle_dict['vehicle_long'] = j_out['vehicle']['position']['longitude']
+                    #trip_id = j_out['vehicle']['trip']['tripId']
+                    #route_id = j_out['vehicle']['trip']['routeId']
+                    #vehicle_dict['shape_id'] = get_shape_id_from_triproute(trip_id, route_id, schedule_df)
                     vehicle_list.append(vehicle_dict)
                 else:
                     bad_vehicle_header_list.append(dict_obj['header'])
         else:
             bad_vehicle_header_list.append(dict_obj['header'])
     return vehicle_list, bad_vehicle_header_list
+
+def get_shape_id_from_triproute(trip_id, route_id, schedule_df):
+    '''get shape_id for that particular trip'''
+    shape_id = schedule_df[(schedule_df['route_id']==int(route_id)) & (schedule_df['trip_id']==int(trip_id))]['shape_id'].unique()[0]
+    return shape_id
 
 def make_update_list(pb_file_list, folder_path):
     update_list = []
