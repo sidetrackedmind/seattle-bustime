@@ -9,7 +9,7 @@ import pb_todb
 import subprocess
 import download_check
 
-def s3_updates_to_rds(year, month, day_list):
+def s3_position_to_rds(year, month, day_list):
     '''
     INPUT
     ------
