@@ -8,6 +8,7 @@ import database_pipeline
 import pb_todb
 import subprocess
 import download_check
+import multiprocessing
 
 def s3_position_to_rds(year, month, day_list):
     '''
@@ -19,7 +20,35 @@ def s3_position_to_rds(year, month, day_list):
 
     OUTPUT
     ------
-    pushing update files for all days in the list to RDS database'''
+    pushing update files for all days in the list to RDS database
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("start_date", type=str,
+                    help="enter the start_date")
+    parser.add_argument("end_date", type=str,
+                    help="enter the end_date")
+    args = parser.parse_args()
+    start_date = args.start_date
+    end_date = args.end_date
+
+    start_datetime = datetime.datetime.strptime(start_date, '%m/%d/%Y')
+
+    end_datetime = datetime.datetime.strptime(end_date, '%m/%d/%Y')
+
+    step = datetime.timedelta(days=1)
+
+    date_list = []
+    while start_datetime <= end_datetime:
+        temp_date = start_datetime.date()
+        print(temp_date)
+        start_datetime += step
+        date_list.append(temp_date)
+
+    n_pools = multiprocessing.cpu_count() - 2
+
+    pool = multiprocessing.Pool(4)
+    pool.map(s3_position_to_rds_single_day, date_list)
+    '''
 
     bucket_name = os.environ["BUS_BUCKET_NAME"]
 
@@ -87,7 +116,51 @@ def s3_position_to_rds(year, month, day_list):
     #remove the temporary folder after for loop is finished
     os.system('rm -r {}'.format(temp_storage_path))
 
+def s3_position_to_rds_single_day(date):
+    '''
+    INPUT
+    ---------
+    date - MM/DD/YYYY
+    '''
+    month, day, year = date.split("/")
+    bucket_name = os.environ["BUS_BUCKET_NAME"]
+    temp_storage_path = './temp_data_storage_{}'.format(day)
+    aws_base_command = 'aws s3 sync s3://{}/{}/{}/{}'.format(bucket_name,
+                                                                year,
+                                                                month,
+                                                                day
+                                                                )
+    #remove the temporary folder if it exists
+    os.system('rm -r {}'.format(temp_storage_path))
 
+    #create a temporary folder to store a day's worth of downloads
+    os.system('mkdir {}'.format(temp_storage_path))
+
+    day_position_db = pb_todb.make_position_db_from_day(temp_storage_path)
+
+    download_check.position_check(day_position_db, '{}/{}/{}'.format(
+                                                year, month, day))
+
+    day_position_clean_db = clean_position_db(day_position_db)
+
+    download_check.position_post_clean_check(day_position_clean_db,
+                                                '{}/{}/{}'.format(
+                                                year, month, day))
+
+    write_to_table(day_position_clean_db, engine, table_name='bus_raw',
+                                        if_exists='append')
+
+    #remove the temporary folder if it exists
+    os.system('rm -r {}'.format(temp_storage_path))
+
+
+
+def make_date_list(year, month, day_list):
+    date_list = []
+    for day in day_list:
+        temp_date_tuple = (year, month, day)
+        date_list.append(temp_date_tuple)
+    return date_list
 
 def clean_position_db(position_db):
     '''
@@ -104,6 +177,14 @@ def clean_position_db(position_db):
     position_db.drop_duplicates(['vehicle_lat', 'vehicle_long'], inplace=True)
     position_db['time_utc'] = pd.to_datetime(position_db['timestamp'], unit='s')
     position_db['time_pct'] = position_db['time_utc'] - pd.Timedelta('08:00:00')
+    position_db['hour'] = position_db['time_pct'].dt.hour
+    position_db['dow'] = position_db['time_pct'].dt.dayofweek
+    position_db['day'] = position_db['time_pct'].dt.day
+    position_db['month'] = position_db['time_pct'].dt.month
+    col_list = ['route_id', 'timestamp', 'trip_id', 'vehicle_id',
+            'vehicle_lat', 'vehicle_long', 'time_utc', 'time_pct',
+            'hour', 'dow', 'day', 'month']
+    position_db = position_db[col_list]
     return position_db
 
 def get_shape_id_from_triproute(trip_id, route_id, schedule_df):

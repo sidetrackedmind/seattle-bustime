@@ -42,15 +42,18 @@ def get_best_route_params(route_dir):
     #you can always change these grid paramters
     n_folds = 6
     tree_depths = [3, 5, 7, 9]
-    alphas = [0.7, 0.75, 0.8, 0.85, 0.9]
+    #don't cross validate alphas - in the future, you can train a model
+    #with different alphas to give the user predictions based on
+    #a choosen quantile
+    #alphas = [0.7, 0.75, 0.8, 0.85, 0.9]
     n_estimators = 1500
 
-    print("getting tree and alpha params")
-    tree_params, alpha_params = get_route_params(route_dir, tree_depths,
-                                        alphas, n_folds, n_estimators)
+    print("getting tree params")
+    tree_params = get_route_params(route_dir, tree_depths,
+                                        n_folds, n_estimators)
 
     print("cross validate for max depth")
-    #BEWARE! this number is dependent on a big EC2 instance
+    #FYI - this runs quickest on a big EC2 instance with many processors
     n_pools = multiprocessing.cpu_count() - 2
     pool1 = multiprocessing.Pool(n_pools)
     cv_depth_result = pool1.map(crossval_one_depth, tree_params)
@@ -58,31 +61,35 @@ def get_best_route_params(route_dir):
     pool1.close()
 
 
-
+    '''
     print("cross validate for alpha")
     #BEWARE! this number is dependent on a big EC2 instance
     pool2 = multiprocessing.Pool(n_pools)
     cv_alpha_result = pool2.map(crossval_one_alpha, alpha_params)
 
     pool2.close()
+    '''
 
 
     print("find best depth")
     best_depth = find_best_depth(cv_depth_result, n_estimators, n_folds,
                                                             tree_depths)
 
+    '''
+
     print("find best alpha")
     best_alpha = find_best_alpha(cv_alpha_result, n_estimators, n_folds,
                                                                 alphas)
+    '''
 
     print("update cv database")
-    update_cv_database(conn, best_alpha, best_depth, route_dir)
+    update_cv_database(conn, best_depth, route_dir)
 
     #during testing phase return some params to quality check
     #return cv_depth_result, cv_alpha_result, best_depth, best_alpha
 
 
-def get_route_params(route_dir, tree_depths, alphas, n_folds,
+def get_route_params(route_dir, tree_depths, n_folds,
                                                         n_estimators):
     '''This is a function to process user input into the model format
     INPUT
@@ -93,7 +100,7 @@ def get_route_params(route_dir, tree_depths, alphas, n_folds,
     OUTPUT
     -------
     tree_params
-    alpha_params
+    alpha_params - no longer using alpha
     '''
 
     db_name = os.environ["RDS_NAME"]
@@ -141,12 +148,12 @@ def get_route_params(route_dir, tree_depths, alphas, n_folds,
     tree_params = make_tree_params(n_estimators, tree_depths, n_folds,
                                                                 X, y)
 
-    alpha_params = make_alpha_params(n_estimators, alphas, n_folds, X, y)
+    #alpha_params = make_alpha_params(n_estimators, alphas, n_folds, X, y)
 
     cur.close()
     conn.close()
 
-    return tree_params, alpha_params
+    return tree_params
 
 def make_tree_params(n_estimators, tree_depths, n_folds, X, y):
     """
@@ -333,15 +340,14 @@ def column_list_to_string(list):
             column_str += ","+str(col)
     return column_str
 
-def update_cv_database(conn, best_alpha, best_depth, route_dir):
+def update_cv_database(conn, best_depth, route_dir):
     cur = conn.cursor()
 
     cur.execute("UPDATE model_params "
-                "SET best_alpha = (%s),"
-                    "best_depth = (%s),"
+                "SET best_depth = (%s),"
                     "c_validated = 'true' "
                     "WHERE route_dir  = (%s)",
-                    (best_alpha, best_depth, route_dir))
+                    (best_depth, route_dir))
     conn.commit()
 
 def plot_tree_depth_cv(ax, cv_depth_result, n_estimators,
