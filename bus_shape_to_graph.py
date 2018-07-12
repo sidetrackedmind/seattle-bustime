@@ -132,6 +132,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
     len_veh_locs = len(vehicle_geo)
     vehicle_geo_sorted = vehicle_geo.sort_values(by='veh_time_pct', axis=0, ascending=True)
     for i, row in enumerate(vehicle_geo_sorted.iterrows()):
+        error_counter = 1
         if i + 1 < len_veh_locs:
             loc1 = vehicle_geo_sorted['geometry'].iloc[i].coords[:][0]
             loc2 = vehicle_geo_sorted['geometry'].iloc[i+1].coords[:][0]
@@ -187,10 +188,11 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                     day = time1.day
                     month = time1.month
                     output_str = (
-                    "{}{}\n{}{}\n{}{}\n\
+                    "{}{}\n{}{}\n{}{}\n{}{}\n\
                     ".format('node1 -', node1,
                             'node2 -', node2,
-                            'shape_id -', shape_id))
+                            'shape_id -', shape_id,
+                            'error_num - ', error_counter))
                     time_str = str(month)+"_"+str(day)
                     file_path = './bad_network_nodes.txt'
                     with open(file_path, "a") as f:
@@ -198,6 +200,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                         f.write("\n")
                         f.write(output_str)
                         f.write("\n")
+                    error_counter += 1
 
     write_to_bigquery(full_edge_df, shape_id, month, day)
 
