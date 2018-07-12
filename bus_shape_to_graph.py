@@ -31,12 +31,14 @@ def poolcontext(*args, **kwargs):
 
 def bus_shape_to_graph(vehicle_table_name, shape_table_name):
     shape_id_list = get_vehicle_shape_ids(vehicle_table_name)
+    ex_shape_id_list = get_existing_shape_ids()
+    remaining_shape_ids = [x for x in shape_id_list if x not in ex_shape_id_list]
     n_pools = multiprocessing.cpu_count() - 2
     with poolcontext(processes=n_pools) as pool:
         pool.map(partial(update_one_shape,
                         vehicle_table_name=vehicle_table_name,
                         shape_table_name=shape_table_name),
-                        shape_id_list)
+                        remaining_shape_ids)
 
 
 def update_one_shape(shape_id, vehicle_table_name, shape_table_name):
@@ -291,6 +293,31 @@ def get_vehicle_shape_ids(vehicle_table_name):
     rows = query_job.result()  # Waits for query to finish
     df = rows.to_dataframe()
     shape_values = df['sched_shape_id'].values
+    shape_id_list = shape_values.tolist()
+    return shape_id_list
+
+def get_existing_shape_ids():
+    '''
+    INPUT
+    -------
+    google bigquery table name
+    google bigquery base = bustime-sandbox.vehicle_data
+    OUTPUT
+    -------
+    shape_id_list <-- all the unique shape_ids for that
+    list of vehicle trips
+    '''
+    client = bigquery.Client.from_service_account_json(
+        'bustime-keys.json')
+
+    QUERY = (
+        'SELECT shape_id FROM `bustime-sandbox.vehicle_data.vehicle_edges` '
+        'WHERE sched_shape_id IS NOT NULL '
+        'GROUP BY shape_id')
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    df = rows.to_dataframe()
+    shape_values = df['shape_id'].values
     shape_id_list = shape_values.tolist()
     return shape_id_list
 
