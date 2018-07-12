@@ -208,7 +208,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                         f.write("\n")
                     error_counter += 1
 
-    write_to_bigquery(full_edge_df, shape_id)
+        write_to_bigquery(full_edge_df, shape_id)
 
 def get_close_node(raw_loc, route_vertex_geo):
     '''
