@@ -144,39 +144,52 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                                                                                      node1, node2))
                 print("node_num1 {}, node_num2 {}, dist1 {}, dist2 {}".format(node_num1, node_num2,
                                                                              dist1, dist2))'''
-                trav_dist = get_travel_distance(node1, node2, route_vertex_geo, G)
-                time1 = vehicle_geo_sorted['veh_time_pct'].iloc[i]
-                time2 = vehicle_geo_sorted['veh_time_pct'].iloc[i+1]
-                time_delta = time2 - time1
-                time_delta_hours = time_delta.total_seconds() / (60 * 60)
-                time_delta_half = time_delta.total_seconds() / 2
-                time_midway = time1 + pd.Timedelta('{} seconds'.format(time_delta_half))
-                hour = time_midway.hour
-                dow = time_midway.dayofweek
-                day = time_midway.day
-                month = time_midway.month
-                time_id = "{}_{}".format(dow, hour)
-                trav_rate_update = trav_dist/(time_delta_hours*5280)
-                '''need to find all edges in between loc1 and loc2 and update them'''
-                edge_list = get_edge_list(node1, node2, G)
-                edge_for_upload = []
-                col_list = ['pt1_lon', 'pt1_lat', 'pt2_lon', 'pt2_lat',
-                            'start_time', 'end_time', 'mid_time',
-                            'hour', 'dow', 'day', 'month', 'travel_rate',
-                            'trip_id', 'vehicle_id', 'route_id', 'shape_id']
-                for edge in edge_list:
-                    node1_lon = edge[0][0]
-                    node1_lat = edge[0][1]
-                    node2_lon = edge[1][0]
-                    node2_lat = edge[1][1]
-                    info_tuple = (node1_lon, node1_lat, node2_lon,
-                                        node2_lat, time1, time2, time_midway,
-                                        hour, dow, day, month, trav_rate_update,
-                                        trip_id, vehicle_id, route_id, shape_id)
-                    edge_for_upload.append(info_tuple)
-                edge_df = pd.DataFrame(edge_for_upload, columns=col_list)
-                #print("writing to GCP {}-{}".format(time_midway, trip_id))
-                write_to_bigquery(edge_df, trip_id, month, day)
+                try:
+                    trav_dist = get_travel_distance(node1, node2, route_vertex_geo, G)
+                    time1 = vehicle_geo_sorted['veh_time_pct'].iloc[i]
+                    time2 = vehicle_geo_sorted['veh_time_pct'].iloc[i+1]
+                    time_delta = time2 - time1
+                    time_delta_hours = time_delta.total_seconds() / (60 * 60)
+                    time_delta_half = time_delta.total_seconds() / 2
+                    time_midway = time1 + pd.Timedelta('{} seconds'.format(time_delta_half))
+                    hour = time_midway.hour
+                    dow = time_midway.dayofweek
+                    day = time_midway.day
+                    month = time_midway.month
+                    time_id = "{}_{}".format(dow, hour)
+                    trav_rate_update = trav_dist/(time_delta_hours*5280)
+                    '''need to find all edges in between loc1 and loc2 and update them'''
+                    edge_list = get_edge_list(node1, node2, G)
+                    edge_for_upload = []
+                    col_list = ['pt1_lon', 'pt1_lat', 'pt2_lon', 'pt2_lat',
+                                'start_time', 'end_time', 'mid_time',
+                                'hour', 'dow', 'day', 'month', 'travel_rate',
+                                'trip_id', 'vehicle_id', 'route_id', 'shape_id']
+                    for edge in edge_list:
+                        node1_lon = edge[0][0]
+                        node1_lat = edge[0][1]
+                        node2_lon = edge[1][0]
+                        node2_lat = edge[1][1]
+                        info_tuple = (node1_lon, node1_lat, node2_lon,
+                                            node2_lat, time1, time2, time_midway,
+                                            hour, dow, day, month, trav_rate_update,
+                                            trip_id, vehicle_id, route_id, shape_id)
+                        edge_for_upload.append(info_tuple)
+                    edge_df = pd.DataFrame(edge_for_upload, columns=col_list)
+                    #print("writing to GCP {}-{}".format(time_midway, trip_id))
+                    write_to_bigquery(edge_df, trip_id, month, day)
+                except nx.NetworkXNoPath:
+                    output_str = (
+                    "{}{}\n{}{}\n{}{}\n\
+                    ".format('node1 -', node1,
+                            'node2 -', node2,
+                            'shape_id -', shape_id))
+                    file_path = './bad_network_nodes.txt'
+                    with open(file_path, "a") as f:
+                        f.write(data_date+" pre-pipeline")
+                        f.write("\n")
+                        f.write(output_str)
+                        f.write("\n")
 
 def get_close_node(raw_loc, route_vertex_geo):
     '''
