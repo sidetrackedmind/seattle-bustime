@@ -179,6 +179,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                     #print("writing to GCP {}-{}".format(time_midway, trip_id))
                     write_to_bigquery(edge_df, trip_id, month, day)
                 except nx.NetworkXNoPath:
+                    time1 = vehicle_geo_sorted['veh_time_pct'].iloc[i]
                     output_str = (
                     "{}{}\n{}{}\n{}{}\n\
                     ".format('node1 -', node1,
@@ -186,7 +187,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                             'shape_id -', shape_id))
                     file_path = './bad_network_nodes.txt'
                     with open(file_path, "a") as f:
-                        f.write(time_midway+" pre-pipeline")
+                        f.write(time1+" pre-pipeline")
                         f.write("\n")
                         f.write(output_str)
                         f.write("\n")
