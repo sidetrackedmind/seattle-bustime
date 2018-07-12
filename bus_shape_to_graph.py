@@ -312,7 +312,7 @@ def get_existing_shape_ids():
 
     QUERY = (
         'SELECT shape_id FROM `bustime-sandbox.vehicle_data.vehicle_edges` '
-        'WHERE sched_shape_id IS NOT NULL '
+        'WHERE shape_id IS NOT NULL '
         'GROUP BY shape_id')
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
