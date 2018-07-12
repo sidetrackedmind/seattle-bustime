@@ -41,24 +41,31 @@ def bus_shape_to_graph(vehicle_table_name, shape_table_name):
 
 def update_one_shape(shape_id, vehicle_table_name, shape_table_name):
     print("making route shape for {}".format(shape_id))
-    route_vertex_geo = make_geopandas_shape_df(shape_table_name)
+    route_vertex_geo = make_geopandas_shape_df(shape_table_name, shape_id)
     #print("making trip_geo for {}".format(shape_id))
     vehicle_trip_geo_df, unique_trip_list = get_unique_trip_list_df(
                                     vehicle_table_name, shape_id)
     #print("making network for {}".format(shape_id))
     G = create_network_fromshape(route_vertex_geo, shape_id)
-    for unique_trip in unique_trip_list:
+    for i, unique_trip in enumerate(unique_trip_list):
         unique_trip_geo_df = vehicle_trip_geo_df[vehicle_trip_geo_df['month_day_trip']==unique_trip]
         #we need these ids in the edge row for future stats!
         trip_id = unique_trip_geo_df['veh_trip_id'].unique()[0]
         vehicle_id =unique_trip_geo_df['veh_vehicle_id'].unique()[0]
         route_id = unique_trip_geo_df['veh_route_id'].unique()[0]
         #print("making GCP edges for {}-{}".format(shape_id, trip_id))
-        update_GCP_edges(unique_trip_geo_df, route_vertex_geo, G,
+        unique_trip_edge_df = update_edges(unique_trip_geo_df, route_vertex_geo, G,
                         trip_id, vehicle_id, route_id, shape_id)
+        #print("rows in trip {} full_edge_df - ".format(unique_trip),len(unique_trip_edge_df))
+        if i == 0:
+            all_shape_trips_edge_df = unique_trip_edge_df.copy()
+        else:
+            all_shape_trips_edge_df = all_shape_trips_edge_df.append(unique_trip_edge_df)
+        #print("rows in all_shape_trips - ",len(all_shape_trips_edge_df))
+    write_to_bigquery(all_shape_trips_edge_df, shape_id)
 
 
-def make_geopandas_shape_df(shape_table_name):
+def make_geopandas_shape_df(shape_table_name, shape_id):
     '''
     INPUT
     -------
@@ -73,7 +80,8 @@ def make_geopandas_shape_df(shape_table_name):
 
     QUERY = (
         'SELECT * FROM `bustime-sandbox.kcm_gtfs_shapes.{}` '
-        ).format(shape_table_name)
+        'WHERE shape_id = {} '
+        ).format(shape_table_name, shape_id)
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
     shapes_df = rows.to_dataframe()
@@ -126,7 +134,7 @@ def create_network_fromshape(route_vertex_geo, shape_id):
     G.add_weighted_edges_from(edgelist, weight='dist')
     return G
 
-def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
+def update_edges(vehicle_geo, route_vertex_geo, G,
                     trip_id, vehicle_id, route_id, shape_id):
     #(unique_trip_geo_df, route_vertex_geo, G,
     #trip_id, vehicle_id, route_id, shape_id)
@@ -134,6 +142,8 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
     trips to update the graph'''
     len_veh_locs = len(vehicle_geo)
     vehicle_geo_sorted = vehicle_geo.sort_values(by='veh_time_pct', axis=0, ascending=True)
+    overall_month = vehicle_geo_sorted['veh_time_pct'][0].month
+    overall_day = vehicle_geo_sorted['veh_time_pct'][0].day
     full_edge_df = pd.DataFrame()
     error_counter = 1
     for i, row in enumerate(vehicle_geo_sorted.iterrows()):
@@ -207,8 +217,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                         f.write(output_str)
                         f.write("\n")
                     error_counter += 1
-
-        write_to_bigquery(full_edge_df, shape_id)
+    return full_edge_df
 
 def get_close_node(raw_loc, route_vertex_geo):
     '''
