@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 from pandasql import sqldf
 import matplotlib.pyplot as plt
-%matplotlib inline
 import geopandas as gpd
 from geopandas import GeoDataFrame
 from shapely.geometry import Point, LineString, MultiLineString
@@ -18,8 +17,7 @@ import networkx as nx
 import pickle
 
 
-
-def update_graphs_all_trips(position_db, schedule_df, route_vertex_shapes, G_dict):
+def update_graphs_all_trips_to_dict(position_db, schedule_df, route_vertex_shapes, G_dict):
     '''all functions together'''
     position_db_clean = clean_position_db(position_db)
     position_geo = create_vehicle_geo(position_db_clean)
@@ -35,11 +33,6 @@ def update_graphs_all_trips(position_db, schedule_df, route_vertex_shapes, G_dic
             G_route_updated = update_graph(position_trip_geo, route_vertex_geo, G_route)
             G_dict[shape_id] = G_route_updated
     return G_dict
-
-
-
-
-
 
 def get_shape_id_from_triproute(trip_id, route_id, schedule_df):
     '''get shape_id for that particular trip'''
