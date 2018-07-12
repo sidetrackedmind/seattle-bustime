@@ -20,6 +20,9 @@ import argparse
 #vehicle_table_name = 'vehicles_2017_11_15_join'
 #shape_table_name = 'shapes_2017_11_15'
 
+#add something so user can select which shape to start on (if you have
+#to start over)
+
 @contextmanager
 def poolcontext(*args, **kwargs):
     pool = multiprocessing.Pool(*args, **kwargs)
@@ -205,7 +208,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                         f.write("\n")
                     error_counter += 1
 
-    write_to_bigquery(full_edge_df, shape_id, month, day)
+    write_to_bigquery(full_edge_df, shape_id)
 
 def get_close_node(raw_loc, route_vertex_geo):
     '''
@@ -314,13 +317,13 @@ def get_unique_trip_id(row):
     unique_trip = str(row['veh_month'])+"_"+str(row['veh_day'])+"_"+str(row['veh_trip_id'])
     return unique_trip
 
-def write_to_bigquery(df, shape_id, month, day):
+def write_to_bigquery(df, shape_id):
     '''
     '''
     #bigquery params
     client = bigquery.Client.from_service_account_json(
     'bustime-keys.json')
-    filename = 'temp_veh_edges_{}_{}_{}.csv'.format(shape_id, month,day)
+    filename = 'temp_veh_edges_{}.csv'.format(shape_id)
     dataset_id = 'vehicle_data'
     table_id = 'vehicle_edges'
 
