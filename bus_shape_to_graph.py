@@ -131,8 +131,9 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
     trips to update the graph'''
     len_veh_locs = len(vehicle_geo)
     vehicle_geo_sorted = vehicle_geo.sort_values(by='veh_time_pct', axis=0, ascending=True)
+    full_edge_df = pd.DataFrame()
+    error_counter = 1
     for i, row in enumerate(vehicle_geo_sorted.iterrows()):
-        error_counter = 1
         if i + 1 < len_veh_locs:
             loc1 = vehicle_geo_sorted['geometry'].iloc[i].coords[:][0]
             loc2 = vehicle_geo_sorted['geometry'].iloc[i+1].coords[:][0]
@@ -178,6 +179,8 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                         edge_for_upload.append(info_tuple)
                     edge_df = pd.DataFrame(edge_for_upload, columns=col_list)
                     if i == 0:
+                        full_edge_df = edge_df.copy()
+                    elif full_edge_df.empty:
                         full_edge_df = edge_df.copy()
                     else:
                         full_edge_df = full_edge_df.append(edge_df)
