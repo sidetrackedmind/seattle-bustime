@@ -17,8 +17,8 @@ from functools import partial
 from contextlib import contextmanager
 import argparse
 
-#vehicle_table_name = 'vehicles_2017_11_15_join'
-#shape_table_name = 'shapes_2017_11_15'
+#vehicle_table_name = 'vehicles_2018_01_18_join'
+#shape_table_name = 'shapes_2018_01_18'
 
 #add something so user can select which shape to start on (if you have
 #to start over)
@@ -361,7 +361,7 @@ def write_to_bigquery(df, shape_id):
     'bustime-keys.json')
     filename = 'temp_veh_edges_{}.csv'.format(shape_id)
     dataset_id = 'vehicle_data'
-    table_id = 'vehicle_edges'
+    table_id = 'vehicle_edges_2018_01_18'
 
     #write df to csv
     df.to_csv(filename, index=False)
