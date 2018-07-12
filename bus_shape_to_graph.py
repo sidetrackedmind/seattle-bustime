@@ -176,8 +176,12 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                                             trip_id, vehicle_id, route_id, shape_id)
                         edge_for_upload.append(info_tuple)
                     edge_df = pd.DataFrame(edge_for_upload, columns=col_list)
+                    if i == 0:
+                        full_edge_df = edge_df.copy()
+                    else:
+                        full_edge_df = full_edge_df.append(edge_df)
+
                     #print("writing to GCP {}-{}".format(time_midway, trip_id))
-                    write_to_bigquery(edge_df, trip_id, month, day)
                 except nx.NetworkXNoPath:
                     time1 = vehicle_geo_sorted['veh_time_pct'].iloc[i]
                     day = time1.day
@@ -194,6 +198,8 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                         f.write("\n")
                         f.write(output_str)
                         f.write("\n")
+
+    write_to_bigquery(full_edge_df, shape_id, month, day)
 
 def get_close_node(raw_loc, route_vertex_geo):
     '''
@@ -302,13 +308,13 @@ def get_unique_trip_id(row):
     unique_trip = str(row['veh_month'])+"_"+str(row['veh_day'])+"_"+str(row['veh_trip_id'])
     return unique_trip
 
-def write_to_bigquery(df, trip_id, month, day):
+def write_to_bigquery(df, shape_id, month, day):
     '''
     '''
     #bigquery params
     client = bigquery.Client.from_service_account_json(
     'bustime-keys.json')
-    filename = 'temp_veh_edges_{}_{}_{}.csv'.format(trip_id, month,day)
+    filename = 'temp_veh_edges_{}_{}_{}.csv'.format(shape_id, month,day)
     dataset_id = 'vehicle_data'
     table_id = 'vehicle_edges'
 
