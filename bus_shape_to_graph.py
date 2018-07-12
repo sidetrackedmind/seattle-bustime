@@ -186,7 +186,7 @@ def update_GCP_edges(vehicle_geo, route_vertex_geo, G,
                             'shape_id -', shape_id))
                     file_path = './bad_network_nodes.txt'
                     with open(file_path, "a") as f:
-                        f.write(data_date+" pre-pipeline")
+                        f.write(time_midway+" pre-pipeline")
                         f.write("\n")
                         f.write(output_str)
                         f.write("\n")
