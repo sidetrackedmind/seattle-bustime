@@ -364,7 +364,7 @@ def write_to_bigquery(df, shape_id):
     'bustime-keys.json')
     filename = 'temp_veh_edges_{}.csv'.format(shape_id)
     dataset_id = 'vehicle_data'
-    table_id = 'vehicle_edges_2018_01_18'
+    table_id = 'vehicle_edges_2018_03_09'
 
     #write df to csv
     df.to_csv(filename, index=False)
