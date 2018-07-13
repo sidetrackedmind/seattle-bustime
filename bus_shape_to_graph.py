@@ -31,14 +31,17 @@ def poolcontext(*args, **kwargs):
 
 def bus_shape_to_graph(vehicle_table_name, shape_table_name):
     shape_id_list = get_vehicle_shape_ids(vehicle_table_name)
+    '''
+    the below code is for restarting purposes so you don't repeat shape_ids
     ex_shape_id_list = get_existing_shape_ids()
     remaining_shape_ids = [x for x in shape_id_list if x not in ex_shape_id_list]
+    '''
     n_pools = multiprocessing.cpu_count() - 2
     with poolcontext(processes=n_pools) as pool:
         pool.map(partial(update_one_shape,
                         vehicle_table_name=vehicle_table_name,
                         shape_table_name=shape_table_name),
-                        remaining_shape_ids)
+                        shape_id_list)
 
 
 def update_one_shape(shape_id, vehicle_table_name, shape_table_name):
@@ -396,4 +399,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     vehicle_table_name = args.vehicle_table_name
     shape_table_name = args.shape_table_name
+    print(vehicle_table_name,",",shape_table_name)
     bus_shape_to_graph(vehicle_table_name, shape_table_name)
