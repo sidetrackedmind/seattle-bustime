@@ -32,16 +32,15 @@ def poolcontext(*args, **kwargs):
 def bus_shape_to_graph(vehicle_table_name, shape_table_name):
     shape_id_list = get_vehicle_shape_ids(vehicle_table_name)
     '''
-    the below code is for restarting purposes so you don't repeat shape_ids
+    the below code is for restarting purposes so you don't repeat shape_ids'''
     ex_shape_id_list = get_existing_shape_ids()
     remaining_shape_ids = [x for x in shape_id_list if x not in ex_shape_id_list]
-    '''
     n_pools = multiprocessing.cpu_count() - 2
     with poolcontext(processes=n_pools) as pool:
         pool.map(partial(update_one_shape,
                         vehicle_table_name=vehicle_table_name,
                         shape_table_name=shape_table_name),
-                        shape_id_list)
+                        remaining_shape_ids)
 
 
 def update_one_shape(shape_id, vehicle_table_name, shape_table_name):
@@ -314,7 +313,7 @@ def get_existing_shape_ids():
         'bustime-keys.json')
 
     QUERY = (
-        'SELECT shape_id FROM `bustime-sandbox.vehicle_data.vehicle_edges` '
+        'SELECT shape_id FROM `bustime-sandbox.vehicle_data.vehicle_edges_2018_03_09` '
         'WHERE shape_id IS NOT NULL '
         'GROUP BY shape_id')
     query_job = client.query(QUERY)  # API request
