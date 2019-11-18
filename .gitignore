@@ -1,0 +1,10 @@
+*.txt
+*.csv
+__pycache__/
+.ipynb_checkpoints/
+bustime-keys.json
+bootstrap.sh
+file_s3_transfer.sh
+installs.sh
+jupyspark.sh
+make_route_objects.py
