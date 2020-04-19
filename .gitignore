@@ -1,5 +1,6 @@
 *.txt
-*.csv
+March2017_gtfs/*.csv
+gis_files/*.csv
 __pycache__/
 .ipynb_checkpoints/
 bustime-keys.json

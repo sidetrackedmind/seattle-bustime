@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import numpy as np
-import psycopg2
 from sklearn.ensemble import GradientBoostingRegressor
 import model_predict
 from datetime import datetime
@@ -29,32 +28,16 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
     -- zero is "on schedule"
     '''
 
-    db_name = os.environ["RDS_NAME"]
-    user = os.environ["RDS_USER"]
-    key = os.environ["RDS_KEY"]
-    host = os.environ["RDS_HOST"]
-    port = os.environ["RDS_PORT"]
 
-    conn = psycopg2.connect(dbname=db_name,
-                            user=user,
-                            password=key,
-                            host=host,
-                            port=port)
-    cur = conn.cursor()
-    query_col_list = ['route_dir_stop','stop_sequence', 'route_id']
-    select_string = column_list_to_string(query_col_list)
-    query = '''
-            select {}
-            from stop_info
-            where route_short_name = '{}'
-            and stop_name = '{}' '''.format(select_string, route_short_name, stop_name)
+    stop_info_df = pd.read_csv("local_data/stop_info.csv")
 
-    cur.execute(query)
-    query_list = cur.fetchone()
-    print(query_list)
-    route_dir_stop = query_list[0]
-    stop_sequence = query_list[1]
-    route_id = query_list[2]
+    user_info_mask = ((stop_info_df.loc[:,'route_short_name'] == route_short_name)&
+            (stop_info_df.loc[:,'stop_name'] == stop_name))
+    user_df = stop_info_df.loc[user_info_mask,:]
+
+    route_dir_stop = user_df['route_dir_stop'].values[0]
+    stop_sequence = user_df['stop_sequence'].values[0]
+    route_id = user_df['route_id'].values[0]
     route_dir = str(route_id) + '_' + str(direction)
 
     date = datetime.strptime(date_string, '%Y-%m-%d')
@@ -63,16 +46,14 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
     month = date.month
     dow = date.weekday()
 
-    query = '''
-            select model_columns, pickle_path
-            from models
-            where route_dir = '{}' '''.format(route_dir)
 
-    cur.execute(query)
-    query_list = cur.fetchall()
+    models_df = pd.read_csv("local_data/models.csv")
 
-    all_columns = query_list[0][0].strip('{}').split(',')
-    pickle_path = query_list[0][1]
+    model_mask = (models_df.loc[:,'route_dir']==route_dir)
+    one_model = models_df[model_mask]
+
+    pickle_path = one_model['pickle_path'].values[0]
+    all_columns = one_model['model_columns'].values[0].split(',')
 
     dummy_cols = ['route_dir_stop','month', 'day', 'hour','dow']
     user_input_values = [route_dir_stop, float(stop_sequence), month, day, hour, dow]
@@ -89,16 +70,6 @@ def dashboard_pipe(route_short_name, stop_name, direction, date_string, user_hou
 
     prediction = model_predict.model_predict(X_array, pickle_path)
 
-    cur.close()
-    conn.close()
 
     return prediction
 
-def column_list_to_string(list):
-    column_str = ''
-    for i, col in enumerate(list):
-        if i == 0:
-            column_str += str(col)
-        else:
-            column_str += ", "+str(col)
-    return column_str

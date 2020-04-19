@@ -4,49 +4,14 @@ from math import sqrt
 from model_pipeline import dashboard_pipe
 import os
 import pandas as pd
-import psycopg2
 import numpy as np
 import datetime
 
 
 app = Flask(__name__)
 
-# Connect to the db
-db_name = os.environ["RDS_NAME"]
-user = os.environ["RDS_USER"]
-key = os.environ["RDS_KEY"]
-host = os.environ["RDS_HOST"]
-port = os.environ["RDS_PORT"]
 
-conn = psycopg2.connect(dbname=db_name,
-                        user=user,
-                        password=key,
-                        host=host,
-                        port=port)
-cur = conn.cursor()
-
-query_selections = ['route_dir','short_dir','route_short_name','direction_id',
-                    'stop_id','route_id','stop_name','stop_sequence']
-
-def column_list_to_string(list):
-    column_str = ''
-    for i, col in enumerate(list):
-        if i == 0:
-            column_str += str(col)
-        else:
-            column_str += ","+str(col)
-    return column_str
-
-query_string = column_list_to_string(query_selections)
-
-cur.execute('''SELECT {}
-            FROM route_all'''.format(query_string)
-                )
-route_short_list = cur.fetchall()
-
-
-route_short_df = pd.DataFrame(route_short_list,
-                        columns=query_selections)
+route_short_df = pd.read_csv("local_data/route_all.csv")
 
 
 route_short_list = list(route_short_df['route_short_name'].unique())
@@ -58,54 +23,13 @@ sorted_routes = sorted(route_arr)
 sorted_route_list = [int(i) for i in sorted_routes]
 initial_route_list = ['Route'] + sorted_route_list
 
-conn.rollback()
-cur = conn.cursor()
-shape_query_selections = ['route_dir','route_id','direction_id',
-                    'route_short_name','shape_id']
-query_string = column_list_to_string(shape_query_selections)
 
-cur.execute('''SELECT {}
-            FROM route_shape'''.format(query_string)
-                )
-route_shape_list = cur.fetchall()
-route_shape_df = pd.DataFrame(route_shape_list,
-                        columns=shape_query_selections)
+route_shape_df = pd.read_csv("local_data/route_shape.csv")
 
-conn.rollback()
-cur = conn.cursor()
-cur.execute("SELECT * "
-            "FROM route_metrics"
-                )
-stop_hour_list = cur.fetchall()
 
-hour_column_list = ['route_id','is_week','stop_name','stop_id',
-                    'direction_id','route_dir', 'stop_hours',
-                    'hour0_10','hour0_90','hour1_10',
-                    'hour1_90', 'hour2_10','hour2_90','hour3_10',
-                    'hour3_90', 'hour4_10','hour4_90','hour5_10',
-                    'hour5_90', 'hour6_10','hour6_90','hour7_10',
-                    'hour7_90', 'hour8_10','hour8_90','hour9_10',
-                    'hour9_90', 'hour10_10','hour10_90','hour11_10',
-                    'hour11_90', 'hour12_10','hour12_90','hour13_10',
-                    'hour13_90', 'hour14_10','hour14_90','hour15_10',
-                    'hour15_90', 'hour16_10','hour16_90','hour17_10',
-                    'hour17_90', 'hour18_10','hour18_90','hour19_10',
-                    'hour19_90', 'hour20_10','hour20_90','hour21_10',
-                    'hour21_90', 'hour22_10','hour22_90','hour23_10',
-                    'hour23_90']
-
-stop_hour_df = pd.DataFrame(stop_hour_list, columns=hour_column_list)
+stop_hour_df = pd.read_csv("local_data/route_metrics.csv")
 print(len(stop_hour_df))
 
-#number_routes = []
-#for route in route_list:
-#    if route not in str_routes:
-#        number_routes.append(route)
-
-#number_routes = np.array(number_routes).astype(int)
-#route_names = sorted(number_routes)
-
-#direction_names = ["1","0"]
 
 stop_hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
@@ -202,8 +126,6 @@ def short_dir_to_route_dir(route_short_df, short_dir):
     route_dir = route_short_df[short_dir_mask]['route_dir'].unique()[0]
     return route_dir
 
-cur.close()
-conn.close()
 
 @app.route('/')
 def index():
@@ -378,8 +300,10 @@ def predict():
     short_dir = str(route_short_name) + "_" + str(direction)
 
 
-    prediction = dashboard_pipe(route_short_name, stop_name, direction,
-                            date, hour)
+    prediction = dashboard_pipe(route_short_name, 
+                            stop_name, direction,
+                            date, 
+                            hour)
 
     route_dir = short_dir_to_route_dir(route_short_df, short_dir)
 
