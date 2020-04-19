@@ -20,13 +20,15 @@
    crossorigin=""/>
 
    <!-- Make sure you put this AFTER Leaflet's CSS -->
+
+<!-- add geojson file -->
+<link rel="location" type="application/json" href="https://meysohn-sandbox.s3.amazonaws.com/seattle-bustime/top_gtfs_shapes.geojson"/>
    <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
   integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw=="
   crossorigin=""></script>
 
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
-  <script src="static/js/all_route_lines.js"></script>
   <script src="static/js/KCM_stop_shapes.js"></script>
   <script src="static/js/stop_routes.js"></script>
   <script src="static/js/stop_info.js"></script>
@@ -37,6 +39,19 @@
   var selected_map_stop;
   var direction_number = [];
   var selected_route_shape = [];
+
+  var geojson_file = $.ajax({
+    url:"https://meysohn-sandbox.s3.amazonaws.com/seattle-bustime/all_route_lines.geojson",
+    dataType: "json",
+    async: false,
+    success: console.log("Data successfully loaded!"),
+    error: function (xhr) {
+    alert(xhr.statusText)
+    }
+})
+  var route_geojson = geojson_file.responseJSON;
+  console.log("printing geojson")
+  console.log(geojson)
 
   route_internal = function(){
     user_route = $("#routeSelect").val()
@@ -503,10 +518,14 @@
         selected_stops_layer.remove();
     }
 
+    console.log(selected_route_shape)
+
 
     route_shape_change = function() {
 
         var num_shapes = selected_route_shape.length;
+
+        console.log(selected_route_shape)
 
 
     routeFilter = function(feature) {
@@ -515,8 +534,12 @@
         }
     }
 
-    selected_routes_layer = L.geoJson(all_route_lines,
+    
+    selected_routes_layer = L.geoJson(route_geojson,
         {filter: routeFilter}).addTo(mymap);
+
+    console.log(selected_routes_layer)
+    
 
     mymap.fitBounds(selected_routes_layer.getBounds(), {
             //padding: [50,50]
