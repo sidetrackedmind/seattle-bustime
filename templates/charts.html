@@ -29,9 +29,9 @@
 
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
-  <script src="static/js/KCM_stop_shapes.js"></script>
+  <!-- <script src="static/js/KCM_stop_shapes.js"></script>
   <script src="static/js/stop_routes.js"></script>
-  <script src="static/js/stop_info.js"></script>
+  <script src="static/js/stop_info.js"></script> -->
   <script>
 
   var selected_routes_layer;
@@ -40,7 +40,9 @@
   var direction_number = [];
   var selected_route_shape = [];
 
-  var geojson_file = $.ajax({
+
+  // load route lines
+  var route_geojson_file = $.ajax({
     url:"https://meysohn-sandbox.s3.amazonaws.com/seattle-bustime/all_route_lines.geojson",
     dataType: "json",
     async: false,
@@ -49,9 +51,50 @@
     alert(xhr.statusText)
     }
 })
-  var route_geojson = geojson_file.responseJSON;
+  var route_geojson = route_geojson_file.responseJSON;
   console.log("printing geojson")
-  //console.log(route_geojson)
+
+  // load KCM stop shapes
+
+  var kcm_stop_shapes_geojson_file = $.ajax({
+    url:"https://meysohn-sandbox.s3.amazonaws.com/seattle-bustime/KCM_stop_shapes.geojson",
+    dataType: "json",
+    async: false,
+    success: console.log("Data successfully loaded!"),
+    error: function (xhr) {
+    alert(xhr.statusText)
+    }
+})
+
+var KCM_stop_shapes = kcm_stop_shapes_geojson_file.responseJSON;
+
+  // load stop_routes_geojson_file
+
+  var stop_routes_geojson_file = $.ajax({
+    url:"https://meysohn-sandbox.s3.amazonaws.com/seattle-bustime/stop_routes.geojson",
+    dataType: "json",
+    async: false,
+    success: console.log("Data successfully loaded!"),
+    error: function (xhr) {
+    alert(xhr.statusText)
+    }
+})
+
+var stop_routes = stop_routes_geojson_file.responseJSON;
+
+ // load stop_info
+
+ var stop_info_geojson_file = $.ajax({
+    url:"https://meysohn-sandbox.s3.amazonaws.com/seattle-bustime/stop_info.geojson",
+    dataType: "json",
+    async: false,
+    success: console.log("Data successfully loaded!"),
+    error: function (xhr) {
+    alert(xhr.statusText)
+    }
+})
+
+var stop_info = stop_info_geojson_file.responseJSON;
 
   route_internal = function(){
     user_route = $("#routeSelect").val()
